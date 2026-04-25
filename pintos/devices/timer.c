@@ -1,7 +1,6 @@
 #include "devices/timer.h"
 #include <debug.h>
 #include <inttypes.h>
-#include <list.h>
 #include <round.h>
 #include <stdio.h>
 #include "threads/interrupt.h"
@@ -19,21 +18,20 @@
 #endif
 
 /* Number of timer ticks since OS booted. */
+static struct list sleep_list; // EY:sleep_list 구조체
 static int64_t ticks;
-
-/* Threads blocked in timer_sleep(), ordered by wakeup_tick. */
-static struct list sleep_list;
 
 /* Number of loops per timer tick.
    Initialized by timer_calibrate(). */
 static unsigned loops_per_tick;
 
 static intr_handler_func timer_interrupt;
-static bool wakeup_less(const struct list_elem *a,
-		const struct list_elem *b, void *aux UNUSED);
 static bool too_many_loops(unsigned loops);
 static void busy_wait(int64_t loops);
 static void real_time_sleep(int64_t num, int32_t denom);
+static bool sleep_compare(const struct list_elem *a,
+						  const struct list_elem *b,
+						  void *aux);
 
 /* Sets up the 8254 Programmable Interval Timer (PIT) to
    interrupt PIT_FREQ times per second, and registers the
@@ -49,7 +47,7 @@ void timer_init(void)
 	outb(0x40, count >> 8);
 
 	intr_register_ext(0x20, timer_interrupt, "8254 Timer");
-	list_init(&sleep_list);
+	list_init (&sleep_list); // EY:sleep_list 처음 시작할때 생성
 }
 
 /* Calibrates loops_per_tick, used to implement brief delays. */
@@ -98,22 +96,27 @@ timer_elapsed(int64_t then)
 }
 
 /* Suspends execution for approximately TICKS timer ticks. */
-void timer_sleep(int64_t ticks)
-{
-	if (ticks <= 0)
-	{
-		return;
-	}
+// 이 부분 수정해야함. 기존방식은 레디큐에 남아있으면서 스케줄러가 확인할 때 그 스레드가 또 실행돼서 while문 조건을 봄.
+// 근데 진짜 sleep하는걸로 바꿔야함. 깨어날 틱을 계산하고, sleep queue에 (정렬상태로)넣어줌. 
+// 그래서 스케줄러가 앞부터 체크하면서 해당 스레드랑 wake up tick을 비교하고 조건 만족하면 레디큐로 옮김
+void
+timer_sleep (int64_t ticks) { //해당 스레드 몇틱동안 재울건지 (인자(ticks)만큼 ticks + start까지 재움)
+	enum intr_level old_level;
+	int64_t start = timer_ticks ();
+	struct thread * t = thread_current();
 
-	ASSERT(intr_get_level() == INTR_ON);
+	ASSERT (intr_get_level () == INTR_ON); // 걍 있음 
+	/*
+	while (timer_elapsed (start) < ticks) // 여기 수정해주기
+		thread_yield ();
+	*/
+	int64_t total = start + ticks;
+	old_level = intr_disable();
+	t->wakeup_tick = start + ticks; //지금 스레드의 wakeup 틱을 설정
 
-	enum intr_level old_level = intr_disable();
-	struct thread *cur = thread_current();
-
-	cur->wakeup_tick = timer_ticks() + ticks;
-	list_insert_ordered(&sleep_list, &cur->sleep_elem, wakeup_less, NULL);
+	//sleep list에 넣어야해
+	list_insert_ordered(&sleep_list, &t->sleep_elem, sleep_compare, NULL);
 	thread_block();
-
 	intr_set_level(old_level);
 }
 
@@ -147,30 +150,6 @@ timer_interrupt(struct intr_frame *args UNUSED)
 {
 	ticks++;
 	thread_tick();
-
-	while (!list_empty(&sleep_list))
-	{
-		struct thread *t = list_entry(list_front(&sleep_list),
-				struct thread, sleep_elem);
-
-		if (t->wakeup_tick > ticks)
-		{
-			break;
-		}
-
-		list_pop_front(&sleep_list);
-		thread_unblock(t);
-	}
-}
-
-static bool
-wakeup_less(const struct list_elem *a, const struct list_elem *b,
-		void *aux UNUSED)
-{
-	const struct thread *ta = list_entry(a, struct thread, sleep_elem);
-	const struct thread *tb = list_entry(b, struct thread, sleep_elem);
-
-	return ta->wakeup_tick < tb->wakeup_tick;
 }
 
 /* Returns true if LOOPS iterations waits for more than one timer
@@ -234,4 +213,12 @@ real_time_sleep(int64_t num, int32_t denom)
 		ASSERT(denom % 1000 == 0);
 		busy_wait(loops_per_tick * num / 1000 * TIMER_FREQ / (denom / 1000));
 	}
+}
+
+bool sleep_compare(const struct list_elem *a, const struct list_elem *b, void *aux)
+{
+	struct thread * thread_1 = list_entry(a, struct thread, sleep_elem);
+	struct thread * thread_2 = list_entry(b, struct thread, sleep_elem);
+
+	return thread_1->wakeup_tick < thread_2->wakeup_tick;
 }

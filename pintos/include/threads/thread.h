@@ -92,9 +92,8 @@ struct thread
 	enum thread_status status; /* Thread state. */
 	char name[16];			   /* Name (for debugging purposes). */
 	int priority;			   /* Priority. */
-	int64_t wakeup_tick;	   /* Tick at which to wake from sleep. */
-	struct list_elem sleep_elem; /* List element for sleep queue. */
-
+	int64_t wakeup_tick; // EY: wakeup_tick 구조체에 추가
+	struct list_elem sleep_elem; //EY: sleep_elem으로 
 	/* Shared between thread.c and synch.c. */
 	struct list_elem elem; /* List element. */
 
