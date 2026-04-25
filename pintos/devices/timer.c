@@ -93,7 +93,7 @@ timer_elapsed(int64_t then)
 /* Suspends execution for approximately TICKS timer ticks. */
 void timer_sleep(int64_t ticks)
 {
-	if (ticks < 0)
+	if (ticks <= 0)
 	{
 		return;
 	}
