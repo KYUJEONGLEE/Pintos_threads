@@ -92,6 +92,8 @@ struct thread
 	enum thread_status status; /* Thread state. */
 	char name[16];			   /* Name (for debugging purposes). */
 	int priority;			   /* Priority. */
+	int64_t wakeup_tick;	   /* Tick at which to wake from sleep. */
+	struct list_elem sleep_elem; /* List element for sleep queue. */
 
 	/* Shared between thread.c and synch.c. */
 	struct list_elem elem; /* List element. */
@@ -143,5 +145,5 @@ int thread_get_recent_cpu(void);
 int thread_get_load_avg(void);
 
 void do_iret(struct intr_frame *tf);
-struct list sleep_list;
+
 #endif /* threads/thread.h */
