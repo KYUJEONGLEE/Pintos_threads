@@ -234,8 +234,8 @@ void thread_block(void)
    update other data. */
 
 static bool
-priority_less(const struct list_elem *a_, const struct list_elem *b_,
-			  void *aux UNUSED)
+priority_higher(const struct list_elem *a_, const struct list_elem *b_,
+				void *aux UNUSED)
 {
 	const struct thread *a = list_entry(a_, struct thread, elem);
 	const struct thread *b = list_entry(b_, struct thread, elem);
@@ -252,7 +252,7 @@ void thread_unblock(struct thread *t)
 	old_level = intr_disable();
 	ASSERT(t->status == THREAD_BLOCKED);
 
-	list_insert_ordered(&ready_list, &t->elem, priority_less, NULL);
+	list_insert_ordered(&ready_list, &t->elem, priority_higher, NULL);
 	t->status = THREAD_READY;
 	intr_set_level(old_level);
 }
@@ -317,7 +317,7 @@ void thread_yield(void)
 
 	old_level = intr_disable();
 	if (curr != idle_thread)
-		list_insert_ordered(&ready_list, &curr->elem, priority_less, NULL);
+		list_insert_ordered(&ready_list, &curr->elem, priority_higher, NULL);
 	do_schedule(THREAD_READY);
 	intr_set_level(old_level);
 }
