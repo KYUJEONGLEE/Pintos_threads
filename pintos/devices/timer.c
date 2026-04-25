@@ -107,12 +107,13 @@ void timer_sleep(int64_t ticks)
 		return;
 	}
 	enum intr_level old_level;
-	int64_t start = timer_ticks();
+
 	struct thread *t = thread_current();
 
 	ASSERT(intr_get_level() == INTR_ON);
-	int64_t total = start + ticks;
 	old_level = intr_disable();
+	int64_t start = timer_ticks();
+	int64_t total = start + ticks;
 	t->wakeup_tick = start + ticks; // 지금 스레드의 wakeup 틱을 설정
 
 	// sleep list에 넣어야해
