@@ -29,7 +29,7 @@ static intr_handler_func timer_interrupt;
 static bool too_many_loops(unsigned loops);
 static void busy_wait(int64_t loops);
 static void real_time_sleep(int64_t num, int32_t denom);
-static bool sleep_compare(const struct list_elem *a,
+static bool sleep_less(const struct list_elem *a,
 						  const struct list_elem *b,
 						  void *aux);
 
@@ -101,21 +101,19 @@ timer_elapsed(int64_t then)
 // 그래서 스케줄러가 앞부터 체크하면서 해당 스레드랑 wake up tick을 비교하고 조건 만족하면 레디큐로 옮김
 void
 timer_sleep (int64_t ticks) { //해당 스레드 몇틱동안 재울건지 (인자(ticks)만큼 ticks + start까지 재움)
+
+	if(ticks <= 0) { return; }
 	enum intr_level old_level;
 	int64_t start = timer_ticks ();
 	struct thread * t = thread_current();
 
-	ASSERT (intr_get_level () == INTR_ON); // 걍 있음 
-	/*
-	while (timer_elapsed (start) < ticks) // 여기 수정해주기
-		thread_yield ();
-	*/
+	ASSERT (intr_get_level () == INTR_ON); 
 	int64_t total = start + ticks;
 	old_level = intr_disable();
 	t->wakeup_tick = start + ticks; //지금 스레드의 wakeup 틱을 설정
 
 	//sleep list에 넣어야해
-	list_insert_ordered(&sleep_list, &t->sleep_elem, sleep_compare, NULL);
+	list_insert_ordered(&sleep_list, &t->sleep_elem, sleep_less, NULL);
 	thread_block();
 	intr_set_level(old_level);
 }
@@ -215,7 +213,7 @@ real_time_sleep(int64_t num, int32_t denom)
 	}
 }
 
-bool sleep_compare(const struct list_elem *a, const struct list_elem *b, void *aux)
+bool sleep_less(const struct list_elem *a, const struct list_elem *b, void *aux)
 {
 	struct thread * thread_1 = list_entry(a, struct thread, sleep_elem);
 	struct thread * thread_2 = list_entry(b, struct thread, sleep_elem);
