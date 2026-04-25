@@ -18,6 +18,7 @@
 #endif
 
 /* Number of timer ticks since OS booted. */
+static struct list sleep_list; // EY:sleep_list 구조체
 static int64_t ticks;
 /* Number of loops per timer tick.
    Initialized by timer_calibrate(). */
@@ -27,6 +28,9 @@ static intr_handler_func timer_interrupt;
 static bool too_many_loops(unsigned loops);
 static void busy_wait(int64_t loops);
 static void real_time_sleep(int64_t num, int32_t denom);
+static bool sleep_less(const struct list_elem *a,
+					   const struct list_elem *b,
+					   void *aux);
 static struct list sleep_list;
 
 /* Sets up the 8254 Programmable Interval Timer (PIT) to
@@ -43,6 +47,7 @@ void timer_init(void)
 
 	list_init(&sleep_list);
 	intr_register_ext(0x20, timer_interrupt, "8254 Timer");
+	list_init(&sleep_list); // EY:sleep_list 처음 시작할때 생성
 }
 
 /* Calibrates loops_per_tick, used to implement brief delays. */
@@ -98,6 +103,7 @@ void timer_sleep(int64_t ticks)
 		return;
 	}
 	int64_t start = timer_ticks();
+
 	ASSERT(intr_get_level() == INTR_ON);
 	while (timer_elapsed(start) < ticks)
 		thread_yield();
@@ -210,4 +216,12 @@ real_time_sleep(int64_t num, int32_t denom)
 		ASSERT(denom % 1000 == 0);
 		busy_wait(loops_per_tick * num / 1000 * TIMER_FREQ / (denom / 1000));
 	}
+}
+
+bool sleep_less(const struct list_elem *a, const struct list_elem *b, void *aux)
+{
+	struct thread *thread_1 = list_entry(a, struct thread, sleep_elem);
+	struct thread *thread_2 = list_entry(b, struct thread, sleep_elem);
+
+	return thread_1->wakeup_tick < thread_2->wakeup_tick;
 }

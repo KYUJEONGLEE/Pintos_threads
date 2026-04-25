@@ -88,11 +88,12 @@ typedef int tid_t;
 struct thread
 {
 	/* Owned by thread.c. */
-	tid_t tid;				   /* Thread identifier. */
-	enum thread_status status; /* Thread state. */
-	char name[16];			   /* Name (for debugging purposes). */
-	int priority;			   /* Priority. */
-	int64_t wakeup_tick;
+	tid_t tid;					 /* Thread identifier. */
+	enum thread_status status;	 /* Thread state. */
+	char name[16];				 /* Name (for debugging purposes). */
+	int priority;				 /* Priority. */
+	int64_t wakeup_tick;		 // EY: wakeup_tick 구조체에 추가
+	struct list_elem sleep_elem; // EY: sleep_elem으로
 	/* Shared between thread.c and synch.c. */
 	struct list_elem elem; /* List element. */
 	struct list_elem sleep_elem;
@@ -144,5 +145,5 @@ int thread_get_recent_cpu(void);
 int thread_get_load_avg(void);
 
 void do_iret(struct intr_frame *tf);
-struct list sleep_list;
+
 #endif /* threads/thread.h */

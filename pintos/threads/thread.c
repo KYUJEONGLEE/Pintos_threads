@@ -28,8 +28,6 @@
    that are ready to run but not actually running. */
 static struct list ready_list;
 
-static struct list sleep_list;
-
 /* Idle thread. */
 static struct thread *idle_thread;
 
@@ -420,7 +418,7 @@ init_thread(struct thread *t, const char *name, int priority)
 	ASSERT(PRI_MIN <= priority && priority <= PRI_MAX);
 	ASSERT(name != NULL);
 
-	memset(t, 0, sizeof *t);
+	memset (t, 0, sizeof *t);
 	t->status = THREAD_BLOCKED;
 	strlcpy(t->name, name, sizeof t->name);
 	t->tf.rsp = (uint64_t)t + PGSIZE - sizeof(void *);
