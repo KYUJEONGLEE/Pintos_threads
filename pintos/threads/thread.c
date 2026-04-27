@@ -112,7 +112,7 @@ thread_init (void)
 	initial_thread = running_thread ();
 	init_thread (initial_thread, "main", PRI_DEFAULT);
 	initial_thread->status = THREAD_RUNNING;
-	initial_thread->tid = allocate_tid ();
+	initial_thread->tid = allocate_tid (); 
 }
 
 /* Starts preemptive thread scheduling by enabling interrupts.
@@ -335,11 +335,18 @@ thread_yield (void)
 void
 thread_set_priority (int new_priority)
 {
-	thread_current()->priority = new_priority; 
+	struct thread *current = thread_current;
+	current->original_priority = new_priority; 
+	if(!current->is_donated) {
+		current->priority = new_priority;
+	} else {
+		int donation_priority = current->priority;
+		current->priority = donation_priority > new_priority ? donation_priority : new_priority;
+	}
 	if (!list_empty(&ready_list)) //새로운 우선순위가 들어왔는데, 우선순위가 러닝하던 스레드보다 높으면 양보하는 로직
 	{
 		struct list_elem * front = list_front(&ready_list); //front에 레디리스트 앞 스레드 넣어줌
-		if(list_entry(front, struct thread, elem)->priority > new_priority) // 레디리스트 앞스레드 > 현재 만들어진 스레드면
+		if(list_entry(front, struct thread, elem)->priority > current->priority) // 레디리스트 앞스레드 > 현재 만들어진 스레드면
 		{
 			thread_yield(); //양보함
 		} 
@@ -448,7 +455,9 @@ init_thread (struct thread *t, const char *name, int priority)
 	strlcpy (t->name, name, sizeof t->name);
 	t->tf.rsp = (uint64_t)t + PGSIZE - sizeof (void *);
 	t->priority = priority;
+	t->original_priority = priority;
 	t->magic = THREAD_MAGIC;
+	t->is_donated = false;
 }
 
 /* Chooses and returns the next thread to be scheduled.  Should

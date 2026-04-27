@@ -113,6 +113,7 @@ sema_up (struct semaphore *sema)
 	struct thread *unblocked_thread = NULL;
 
 	ASSERT (sema != NULL);
+	struct thread *highest_thread = NULL;
 
 	old_level = intr_disable ();
 	if (!list_empty (&sema->waiters)){
@@ -210,9 +211,26 @@ lock_acquire (struct lock *lock)
 	ASSERT (lock != NULL);
 	ASSERT (!intr_context ());
 	ASSERT (!lock_held_by_current_thread (lock));
-
+	struct thread *holder = lock->holder;
+	if (holder != NULL)
+	{
+		priority_donation (holder, thread_current ());
+	}
 	sema_down (&lock->semaphore);
 	lock->holder = thread_current ();
+}
+/*
+holder의 priorty가 현재 쓰레드의 우선순위보다 낮으면 우선순위를 높여준다.
+(donation) donation 받기 전 기존 우선순위를 original priority에 저장한다.
+*/
+void
+priority_donation (struct thread *holder, struct thread *current)
+{
+	if (holder->priority < current->priority)
+	{
+		holder->priority = holder->original_priority;
+		holder->priority = current->priority;
+	}
 }
 
 /* Tries to acquires LOCK and returns true if successful or false
@@ -244,10 +262,11 @@ lock_try_acquire (struct lock *lock)
 void
 lock_release (struct lock *lock)
 {
+	struct thread *current = thread_current ();
 	ASSERT (lock != NULL);
 	ASSERT (lock_held_by_current_thread (lock));
-
 	lock->holder = NULL;
+	current->priority = current->original_priority;
 	sema_up (&lock->semaphore);
 }
 
