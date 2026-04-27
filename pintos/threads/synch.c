@@ -129,7 +129,8 @@ sema_up (struct semaphore *sema)
 
 	//깨운 스레드가 있고, 그 스레드가 현재 스레드보다 우선순위가 높으면 양보해야함.
 	//waiters 에서 깨운 쓰레드가 없는데 그 priority에 접근하면 터짐.
-	if(unblocked_thread != NULL && unblocked_thread->priority > thread_current()->priority){
+	if(unblocked_thread != NULL && !intr_context () && 
+			unblocked_thread->priority > thread_current()->priority){
 		thread_yield();
 	}
 }
