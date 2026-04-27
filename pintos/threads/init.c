@@ -61,12 +61,12 @@ static void usage (void);
 
 static void print_stats (void);
 
-
 int main (void) NO_RETURN;
 
 /* Pintos main program. */
 int
-main (void) {
+main (void)
+{
 	uint64_t mem_end;
 	char **argv;
 
@@ -129,7 +129,8 @@ main (void) {
 
 /* Clear BSS */
 static void
-bss_init (void) {
+bss_init (void)
+{
 	/* The "BSS" is a segment that should be initialized to zeros.
 	   It isn't actually stored on disk or zeroed by the kernel
 	   loader, so we have to zero it ourselves.
@@ -144,7 +145,8 @@ bss_init (void) {
  * and then sets up the CPU to use the new page directory.
  * Points base_pml4 to the pml4 it creates. */
 static void
-paging_init (uint64_t mem_end) {
+paging_init (uint64_t mem_end)
+{
 	uint64_t *pml4, *pte;
 	int perm;
 	pml4 = base_pml4 = palloc_get_page (PAL_ASSERT | PAL_ZERO);
@@ -152,11 +154,12 @@ paging_init (uint64_t mem_end) {
 	extern char start, _end_kernel_text;
 	// Maps physical address [0 ~ mem_end] to
 	//   [LOADER_KERN_BASE ~ LOADER_KERN_BASE + mem_end].
-	for (uint64_t pa = 0; pa < mem_end; pa += PGSIZE) {
-		uint64_t va = (uint64_t) ptov(pa);
+	for (uint64_t pa = 0; pa < mem_end; pa += PGSIZE)
+	{
+		uint64_t va = (uint64_t)ptov (pa);
 
 		perm = PTE_P | PTE_W;
-		if ((uint64_t) &start <= va && va < (uint64_t) &_end_kernel_text)
+		if ((uint64_t)&start <= va && va < (uint64_t)&_end_kernel_text)
 			perm &= ~PTE_W;
 
 		if ((pte = pml4e_walk (pml4, va, 1)) != NULL)
@@ -164,22 +167,24 @@ paging_init (uint64_t mem_end) {
 	}
 
 	// reload cr3
-	pml4_activate(0);
+	pml4_activate (0);
 }
 
 /* Breaks the kernel command line into words and returns them as
    an argv-like array. */
 static char **
-read_command_line (void) {
+read_command_line (void)
+{
 	static char *argv[LOADER_ARGS_LEN / 2 + 1];
 	char *p, *end;
 	int argc;
 	int i;
 
-	argc = *(uint32_t *) ptov (LOADER_ARG_CNT);
+	argc = *(uint32_t *)ptov (LOADER_ARG_CNT);
 	p = ptov (LOADER_ARGS);
 	end = p + LOADER_ARGS_LEN;
-	for (i = 0; i < argc; i++) {
+	for (i = 0; i < argc; i++)
+	{
 		if (p >= end)
 			PANIC ("command line arguments overflow");
 
@@ -203,8 +208,10 @@ read_command_line (void) {
 /* Parses options in ARGV[]
    and returns the first non-option argument. */
 static char **
-parse_options (char **argv) {
-	for (; *argv != NULL && **argv == '-'; argv++) {
+parse_options (char **argv)
+{
+	for (; *argv != NULL && **argv == '-'; argv++)
+	{
 		char *save_ptr;
 		char *name = strtok_r (*argv, "=", &save_ptr);
 		char *value = strtok_r (NULL, "", &save_ptr);
@@ -236,14 +243,18 @@ parse_options (char **argv) {
 
 /* Runs the task specified in ARGV[1]. */
 static void
-run_task (char **argv) {
+run_task (char **argv)
+{
 	const char *task = argv[1];
 
 	printf ("Executing '%s':\n", task);
 #ifdef USERPROG
-	if (thread_tests){
+	if (thread_tests)
+	{
 		run_test (task);
-	} else {
+	}
+	else
+	{
 		process_wait (process_create_initd (task));
 	}
 #else
@@ -255,33 +266,34 @@ run_task (char **argv) {
 /* Executes all of the actions specified in ARGV[]
    up to the null pointer sentinel. */
 static void
-run_actions (char **argv) {
+run_actions (char **argv)
+{
 	/* An action. */
-	struct action {
-		char *name;                       /* Action name. */
-		int argc;                         /* # of args, including action name. */
-		void (*function) (char **argv);   /* Function to execute action. */
+	struct action
+	{
+		char *name;						/* Action name. */
+		int argc;						/* # of args, including action name. */
+		void (*function) (char **argv); /* Function to execute action. */
 	};
 
 	/* Table of supported actions. */
 	static const struct action actions[] = {
-		{"run", 2, run_task},
+		{ "run", 2, run_task },
 #ifdef FILESYS
-		{"ls", 1, fsutil_ls},
-		{"cat", 2, fsutil_cat},
-		{"rm", 2, fsutil_rm},
-		{"put", 2, fsutil_put},
-		{"get", 2, fsutil_get},
+		{ "ls", 1, fsutil_ls },	  { "cat", 2, fsutil_cat },
+		{ "rm", 2, fsutil_rm },	  { "put", 2, fsutil_put },
+		{ "get", 2, fsutil_get },
 #endif
-		{NULL, 0, NULL},
+		{ NULL, 0, NULL },
 	};
 
-	while (*argv != NULL) {
+	while (*argv != NULL)
+	{
 		const struct action *a;
 		int i;
 
 		/* Find action name. */
-		for (a = actions; ; a++)
+		for (a = actions;; a++)
 			if (a->name == NULL)
 				PANIC ("unknown action `%s' (use -h for help)", *argv);
 			else if (!strcmp (*argv, a->name))
@@ -290,54 +302,56 @@ run_actions (char **argv) {
 		/* Check for required arguments. */
 		for (i = 1; i < a->argc; i++)
 			if (argv[i] == NULL)
-				PANIC ("action `%s' requires %d argument(s)", *argv, a->argc - 1);
+				PANIC ("action `%s' requires %d argument(s)", *argv,
+					   a->argc - 1);
 
 		/* Invoke action and advance. */
 		a->function (argv);
 		argv += a->argc;
 	}
-
 }
 
 /* Prints a kernel command line help message and powers off the
    machine. */
 static void
-usage (void) {
-	printf ("\nCommand line syntax: [OPTION...] [ACTION...]\n"
-			"Options must precede actions.\n"
-			"Actions are executed in the order specified.\n"
-			"\nAvailable actions:\n"
+usage (void)
+{
+	printf (
+		"\nCommand line syntax: [OPTION...] [ACTION...]\n"
+		"Options must precede actions.\n"
+		"Actions are executed in the order specified.\n"
+		"\nAvailable actions:\n"
 #ifdef USERPROG
-			"  run 'PROG [ARG...]' Run PROG and wait for it to complete.\n"
+		"  run 'PROG [ARG...]' Run PROG and wait for it to complete.\n"
 #else
-			"  run TEST           Run TEST.\n"
+		"  run TEST           Run TEST.\n"
 #endif
 #ifdef FILESYS
-			"  ls                 List files in the root directory.\n"
-			"  cat FILE           Print FILE to the console.\n"
-			"  rm FILE            Delete FILE.\n"
-			"Use these actions indirectly via `pintos' -g and -p options:\n"
-			"  put FILE           Put FILE into file system from scratch disk.\n"
-			"  get FILE           Get FILE from file system into scratch disk.\n"
+		"  ls                 List files in the root directory.\n"
+		"  cat FILE           Print FILE to the console.\n"
+		"  rm FILE            Delete FILE.\n"
+		"Use these actions indirectly via `pintos' -g and -p options:\n"
+		"  put FILE           Put FILE into file system from scratch disk.\n"
+		"  get FILE           Get FILE from file system into scratch disk.\n"
 #endif
-			"\nOptions:\n"
-			"  -h                 Print this help message and power off.\n"
-			"  -q                 Power off VM after actions or on panic.\n"
-			"  -f                 Format file system disk during startup.\n"
-			"  -rs=SEED           Set random number seed to SEED.\n"
-			"  -mlfqs             Use multi-level feedback queue scheduler.\n"
+		"\nOptions:\n"
+		"  -h                 Print this help message and power off.\n"
+		"  -q                 Power off VM after actions or on panic.\n"
+		"  -f                 Format file system disk during startup.\n"
+		"  -rs=SEED           Set random number seed to SEED.\n"
+		"  -mlfqs             Use multi-level feedback queue scheduler.\n"
 #ifdef USERPROG
-			"  -ul=COUNT          Limit user memory to COUNT pages.\n"
+		"  -ul=COUNT          Limit user memory to COUNT pages.\n"
 #endif
-			);
+	);
 	power_off ();
 }
-
 
 /* Powers down the machine we're running on,
    as long as we're running on Bochs or QEMU. */
 void
-power_off (void) {
+power_off (void)
+{
 #ifdef FILESYS
 	filesys_done ();
 #endif
@@ -345,13 +359,15 @@ power_off (void) {
 	print_stats ();
 
 	printf ("Powering off...\n");
-	outw (0x604, 0x2000);               /* Poweroff command for qemu */
-	for (;;);
+	outw (0x604, 0x2000); /* Poweroff command for qemu */
+	for (;;)
+		;
 }
 
 /* Print statistics about Pintos execution. */
 static void
-print_stats (void) {
+print_stats (void)
+{
 	timer_print_stats ();
 	thread_print_stats ();
 #ifdef FILESYS
