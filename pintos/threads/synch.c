@@ -33,8 +33,8 @@
 #include "threads/thread.h"
 
 static void priority_donation (struct thread *holder, struct thread *current);
-static bool priority_less (const struct list_elem *a_, const struct list_elem *b_,
-						   void *aux UNUSED);
+static bool priority_less (const struct list_elem *a_,
+						   const struct list_elem *b_, void *aux UNUSED);
 
 static bool
 priority_less (const struct list_elem *a_, const struct list_elem *b_,
@@ -230,12 +230,22 @@ lock_acquire (struct lock *lock)
 	ASSERT (!intr_context ());
 	ASSERT (!lock_held_by_current_thread (lock));
 	struct thread *holder = lock->holder;
+	struct thread *current = thread_current ();
 	if (holder != NULL)
 	{
+		current->waiting_lock = lock;
+		struct thread *donor = current;
+		while (donor->waiting_lock != NULL && donor->waiting_lock->holder != NULL)
+		{
+			holder = donor->waiting_lock->holder;
+			priority_donation (holder, donor);
+			donor = holder;
+		}
 		priority_donation (holder, thread_current ());
 	}
 	sema_down (&lock->semaphore);
-	lock->holder = thread_current ();
+	current->waiting_lock = NULL;
+	lock->holder = current;
 	/* lock을 실제로 얻은 뒤, 현재 스레드가 보유한 lock 목록에 기록한다. */
 	list_push_back (&thread_current ()->held_locks, &lock->hold_elem);
 }
@@ -248,7 +258,8 @@ priority_donation (struct thread *holder, struct thread *current)
 {
 	if (holder->priority < current->priority)
 	{
-		/* original_priority는 보존하고, 현재 적용 priority만 donation 값으로 올린다. */
+		/* original_priority는 보존하고, 현재 적용 priority만 donation 값으로
+		 * 올린다. */
 		holder->priority = current->priority;
 		holder->is_donated = true;
 	}
@@ -272,7 +283,8 @@ lock_try_acquire (struct lock *lock)
 	if (success)
 	{
 		lock->holder = thread_current ();
-		/* try_acquire로 얻은 lock도 release 시 priority 재계산 대상에 포함한다. */
+		/* try_acquire로 얻은 lock도 release 시 priority 재계산 대상에 포함한다.
+		 */
 		list_push_back (&thread_current ()->held_locks, &lock->hold_elem);
 	}
 	return success;
@@ -292,13 +304,14 @@ lock_release (struct lock *lock)
 	struct thread *current = thread_current ();
 	struct list_elem *cur_elem;
 
-	/* 방금 놓는 lock은 더 이상 current의 donation 근거가 아니므로 목록에서 제거한다. */
+	/* 방금 놓는 lock은 더 이상 current의 donation 근거가 아니므로 목록에서
+	 * 제거한다. */
 	list_remove (&lock->hold_elem);
 
-	lock->holder = NULL;
 	current->priority = current->original_priority;
 	current->is_donated = false;
-	/* 아직 들고 있는 lock들의 waiters를 보고 남아 있는 donation 중 최댓값을 반영한다. */
+	/* 아직 들고 있는 lock들의 waiters를 보고 남아 있는 donation 중 최댓값을
+	 * 반영한다. */
 	for (cur_elem = list_begin (&current->held_locks);
 		 cur_elem != list_end (&current->held_locks);
 		 cur_elem = list_next (cur_elem))
@@ -316,6 +329,7 @@ lock_release (struct lock *lock)
 			}
 		}
 	}
+	lock->holder = NULL;
 	sema_up (&lock->semaphore);
 }
 
