@@ -241,7 +241,6 @@ lock_acquire (struct lock *lock)
 			priority_donation (holder, donor);
 			donor = holder;
 		}
-		priority_donation (holder, thread_current ());
 	}
 	sema_down (&lock->semaphore);
 	current->waiting_lock = NULL;
