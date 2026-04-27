@@ -231,7 +231,7 @@ void thread_block(void)
    it may expect that it can atomically unblock a thread and
    update other data. */
 
-static bool
+bool
 priority_higher(const struct list_elem *a_, const struct list_elem *b_,
 				void *aux UNUSED)
 {
