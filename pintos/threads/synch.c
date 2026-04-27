@@ -290,7 +290,14 @@ cond_priority_higher (const struct list_elem *a_, const struct list_elem *b_,
 	const struct thread *b_thread = list_entry (list_front (&b->semaphore.waiters),
                        struct thread, elem);
 
-	return a_thread->priority > b_thread->priority;
+	/*
+		list_max 를 사용하려면 부호 방향을 바꿔줘야 한다.
+		왜?
+		list_max 는 내부에서 less(max, e, aux)를 호출하는데 
+		인자로 받는 bool less는 max 가 e보다 작으면 true 를 반환한다.
+		그래서 b가 a보다 클 때 true 여야 한다.
+	*/
+	return a_thread->priority < b_thread->priority;
 }
 
 /* Initializes condition variable COND.  A condition variable
@@ -363,10 +370,10 @@ cond_signal (struct condition *cond, struct lock *lock UNUSED)
 	ASSERT (lock_held_by_current_thread (lock));
 
 	if (!list_empty (&cond->waiters)){
-		// 가장 높은 priority의 thread를 가져오기 위해 cond->waiters 리스트 정렬
-		list_sort(&cond->waiters, cond_priority_higher, NULL);
-		struct semaphore *waiting_sema = (&list_entry (list_pop_front (&cond->waiters),
-							  struct semaphore_elem, elem)->semaphore);
+		// 가장 높은 priority의 thread를 가져오기 위해 list_max()에서 priority max 값을 가져온다.
+		struct list_elem *max_elem = list_max(&cond->waiters, cond_priority_higher, NULL);
+		list_remove(max_elem);
+		struct semaphore *waiting_sema = &list_entry (max_elem, struct semaphore_elem, elem)->semaphore;
 		sema_up (waiting_sema);
 	}
 }
