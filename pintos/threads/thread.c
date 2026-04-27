@@ -112,7 +112,7 @@ thread_init (void)
 	initial_thread = running_thread ();
 	init_thread (initial_thread, "main", PRI_DEFAULT);
 	initial_thread->status = THREAD_RUNNING;
-	initial_thread->tid = allocate_tid (); 
+	initial_thread->tid = allocate_tid ();
 }
 
 /* Starts preemptive thread scheduling by enabling interrupts.
@@ -205,11 +205,12 @@ thread_create (const char *name, int priority, thread_func *function, void *aux)
 	t->tf.cs = SEL_KCSEG;
 	t->tf.eflags = FLAG_IF;
 
-	//새로 만들었는데 우선순위 현재 러닝중인 스레드보다 높으면 러닝 스레드가 양보
-	thread_unblock(t);
-	if (t->priority > thread_current()->priority)
+	// 새로 만들었는데 우선순위 현재 러닝중인 스레드보다 높으면 러닝 스레드가
+	// 양보
+	thread_unblock (t);
+	if (t->priority > thread_current ()->priority)
 	{
-		thread_yield();
+		thread_yield ();
 	}
 	return tid;
 }
@@ -336,20 +337,27 @@ void
 thread_set_priority (int new_priority)
 {
 	struct thread *current = thread_current ();
-	current->original_priority = new_priority; 
-	if(!current->is_donated) {
-		current->priority = new_priority;
-	} else {
-		int donation_priority = current->priority;
-		current->priority = donation_priority > new_priority ? donation_priority : new_priority;
-	}
-	if (!list_empty(&ready_list)) //새로운 우선순위가 들어왔는데, 우선순위가 러닝하던 스레드보다 높으면 양보하는 로직
+	current->original_priority = new_priority;
+	if (!current->is_donated)
 	{
-		struct list_elem * front = list_front(&ready_list); //front에 레디리스트 앞 스레드 넣어줌
-		if(list_entry(front, struct thread, elem)->priority > current->priority) // 레디리스트 앞스레드 > 현재 만들어진 스레드면
+		current->priority = new_priority;
+	}
+	else
+	{
+		int donation_priority = current->priority;
+		current->priority = donation_priority > new_priority ? donation_priority
+															 : new_priority;
+	}
+	if (!list_empty (&ready_list)) // 새로운 우선순위가 들어왔는데, 우선순위가
+								   // 러닝하던 스레드보다 높으면 양보하는 로직
+	{
+		struct list_elem *front
+			= list_front (&ready_list); // front에 레디리스트 앞 스레드 넣어줌
+		if (list_entry (front, struct thread, elem)->priority
+			> current->priority) // 레디리스트 앞스레드 > 현재 만들어진 스레드면
 		{
-			thread_yield(); //양보함
-		} 
+			thread_yield (); // 양보함
+		}
 	}
 }
 
