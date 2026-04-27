@@ -335,7 +335,7 @@ thread_yield (void)
 void
 thread_set_priority (int new_priority)
 {
-	struct thread *current = thread_current;
+	struct thread *current = thread_current ();
 	current->original_priority = new_priority; 
 	if(!current->is_donated) {
 		current->priority = new_priority;
@@ -456,6 +456,8 @@ init_thread (struct thread *t, const char *name, int priority)
 	t->tf.rsp = (uint64_t)t + PGSIZE - sizeof (void *);
 	t->priority = priority;
 	t->original_priority = priority;
+	/* priority donation 복구를 위해 현재 스레드가 보유한 lock들을 추적한다. */
+	list_init (&t->held_locks);
 	t->magic = THREAD_MAGIC;
 	t->is_donated = false;
 }
