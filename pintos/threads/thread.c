@@ -205,9 +205,12 @@ thread_create (const char *name, int priority, thread_func *function, void *aux)
 	t->tf.cs = SEL_KCSEG;
 	t->tf.eflags = FLAG_IF;
 
-	/* Add to run queue. */
-	thread_unblock (t);
-
+	//새로 만들었는데 우선순위 현재 러닝중인 스레드보다 높으면 러닝 스레드가 양보
+	thread_unblock(t);
+	if (t->priority > thread_current()->priority)
+	{
+		thread_yield();
+	}
 	return tid;
 }
 
@@ -332,7 +335,15 @@ thread_yield (void)
 void
 thread_set_priority (int new_priority)
 {
-	thread_current ()->priority = new_priority;
+	thread_current()->priority = new_priority; 
+	if (!list_empty(&ready_list)) //새로운 우선순위가 들어왔는데, 우선순위가 러닝하던 스레드보다 높으면 양보하는 로직
+	{
+		struct list_elem * front = list_front(&ready_list); //front에 레디리스트 앞 스레드 넣어줌
+		if(list_entry(front, struct thread, elem)->priority > new_priority) // 레디리스트 앞스레드 > 현재 만들어진 스레드면
+		{
+			thread_yield(); //양보함
+		} 
+	}
 }
 
 /* Returns the current thread's priority. */
