@@ -205,11 +205,12 @@ thread_create (const char *name, int priority, thread_func *function, void *aux)
 	t->tf.cs = SEL_KCSEG;
 	t->tf.eflags = FLAG_IF;
 
-	//새로 만들었는데 우선순위 현재 러닝중인 스레드보다 높으면 러닝 스레드가 양보
-	thread_unblock(t);
-	if (t->priority > thread_current()->priority)
+	// 새로 만들었는데 우선순위 현재 러닝중인 스레드보다 높으면 러닝 스레드가
+	// 양보
+	thread_unblock (t);
+	if (t->priority > thread_current ()->priority)
 	{
-		thread_yield();
+		thread_yield ();
 	}
 	return tid;
 }
@@ -335,14 +336,28 @@ thread_yield (void)
 void
 thread_set_priority (int new_priority)
 {
-	thread_current()->priority = new_priority; 
-	if (!list_empty(&ready_list)) //새로운 우선순위가 들어왔는데, 우선순위가 러닝하던 스레드보다 높으면 양보하는 로직
+	struct thread *current = thread_current ();
+	current->original_priority = new_priority;
+	if (!current->is_donated)
 	{
-		struct list_elem * front = list_front(&ready_list); //front에 레디리스트 앞 스레드 넣어줌
-		if(list_entry(front, struct thread, elem)->priority > new_priority) // 레디리스트 앞스레드 > 현재 만들어진 스레드면
+		current->priority = new_priority;
+	}
+	else
+	{
+		int donation_priority = current->priority;
+		current->priority = donation_priority > new_priority ? donation_priority
+															 : new_priority;
+	}
+	if (!list_empty (&ready_list)) // 새로운 우선순위가 들어왔는데, 우선순위가
+								   // 러닝하던 스레드보다 높으면 양보하는 로직
+	{
+		struct list_elem *front
+			= list_front (&ready_list); // front에 레디리스트 앞 스레드 넣어줌
+		if (list_entry (front, struct thread, elem)->priority
+			> current->priority) // 레디리스트 앞스레드 > 현재 만들어진 스레드면
 		{
-			thread_yield(); //양보함
-		} 
+			thread_yield (); // 양보함
+		}
 	}
 }
 
@@ -448,7 +463,12 @@ init_thread (struct thread *t, const char *name, int priority)
 	strlcpy (t->name, name, sizeof t->name);
 	t->tf.rsp = (uint64_t)t + PGSIZE - sizeof (void *);
 	t->priority = priority;
+	t->original_priority = priority;
+	/* priority donation 복구를 위해 현재 스레드가 보유한 lock들을 추적한다. */
+	list_init (&t->held_locks);
 	t->magic = THREAD_MAGIC;
+	t->is_donated = false;
+	t->waiting_lock = NULL;
 }
 
 /* Chooses and returns the next thread to be scheduled.  Should
