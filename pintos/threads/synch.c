@@ -229,19 +229,89 @@ lock_acquire (struct lock *lock)
 	ASSERT (lock != NULL);
 	ASSERT (!intr_context ());
 	ASSERT (!lock_held_by_current_thread (lock));
+
+	/*
+		holder = lock_acquire의 인자로 들어온 lock을 실제로 소유한 쓰레드를 지칭한다.
+		current = 현재 lock_acquire()를 호출한 쓰레드, 즉 해당 lock을 얻고자 하는 쓰레드를 말함.
+	*/
 	struct thread *holder = lock->holder;
 	struct thread *current = thread_current ();
+	/*
+		holder 가 null이라면 
+		이 말은 현재 해당 lock을 가지고 있는 쓰레드가 없다면 조건문으로 들어가지 않는다
+		
+		하지만 lock의 holder가 있다면
+	*/
 	if (holder != NULL)
 	{
+		/*
+			waiting_lock
+			현재 쓰레드가 지금 얻으려고 기다리는 lock 을 뜻한다.
+			여기서는 함수 인자로 들어온 lock으로 waiting_lock 을 설정함
+			
+			이 정보가 필요한 이유가 뭘까
+			priority donation을 연쇄적으로 하기 위해서?
+			
+			예를 들어보자.
+			A(우선순위 50)
+			B(우선순위 30)
+			C(우선순위 10) 이 있다고 해보자.
+
+			A는 <lock 1>를 기다리고 있음
+			B는 <lock 1>를 hold 하고 있고, <lock 2>를 기다리고 있음
+			C는 <lock 2>를 hold 하고 있음.
+
+			A가 lock_acquire()를 호출했다.
+			A는 B가 가지고 있는 <lock 1>을 waiting_lock 으로 설정한다.
+			그런데 B입장에서는 <lock 2>을 B의 waiting_lock 으로 설정해야 한다.
+
+			이렇게 연쇄적으로 이어지는 관계를 해결하기 위한 lock을 설정해줘야
+			thread → waiting_lock → holder thread → waiting_lock → holder thread ...
+			이런식으로 연결이 가능하다.
+		*/
 		current->waiting_lock = lock;
+		/*
+			donor = 우선순위 기부자
+		*/
 		struct thread *donor = current;
+		/*
+			현재 락을 얻고자 하는 쓰레드(donor)가 기다리고 있는 락이 있고, 그 락을 소유자가 있다면 반복문에 들어간다.
+		*/
 		while (donor->waiting_lock != NULL && donor->waiting_lock->holder != NULL)
 		{
+			/*
+				holder를 락을 요구하고 있는 쓰레드가 지금 얻으려고 하는 락의 소유자를 holder로 설정한다
+				???????
+				왜 이런 코드를 넣었을까
+				사실 첫 코드 흐름을 따라오면 굳이 왜 필요할까 라는 생각이 들 수 밖에 없는거같다.
+				while문 인 걸 잊지 말자.
+				두 번째 반복부터 donor 가 바뀐다.
+				위 주석에서의 예시 상황을 똑같이 사용해보자.
+
+				첫 반복문 들어올 때
+				donor->waiting_lock = <lock 1>
+				donor->waiting_lock->holer = holder
+				위 두 조건을 만족하니 반복문 안으로 들어온다.
+				
+				holder 를 holder 로 설정한다. 첫번째 반복문이니 뭔가 이상하다.
+				priority_donation() 으로 donor 의 priority를 holder에게 부여한다. 이 함수는 아래에서 설명
+				대충 우선순위를 donate 하는 함수이다.
+				그리고 doner 를 그 holder로 설정한다.
+
+				그러면 이제 다시 반복문 조건을 체크한다.
+				처음 <lock 1>을 가진 holder가 얻으려고 있는 락의 유무를 확인하고 그 락의 소유자를 체크한다.
+				이런식으로 연쇄적인 락의 관계를 찾는것이다.
+				그래서 holder를 새롭게 설정한 doner가 원하는 락을 가지고 있는 소유자로 설정한다.
+			*/
 			holder = donor->waiting_lock->holder;
 			priority_donation (holder, donor);
 			donor = holder;
 		}
 	}
+	/*
+		더 이상 연쇄적인 락이 없을 때 반복문 탈출
+		sema_down()을 호출한다.
+	*/
 	sema_down (&lock->semaphore);
 	current->waiting_lock = NULL;
 	lock->holder = current;
