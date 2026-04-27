@@ -69,7 +69,7 @@ sema_down (struct semaphore *sema)
 	old_level = intr_disable ();
 	while (sema->value == 0)
 	{
-		list_push_back (&sema->waiters, &thread_current ()->elem);
+		list_insert_ordered(&sema->waiters, &thread_current()->elem, priority_higher, NULL);
 		thread_block ();
 	}
 	sema->value--;
@@ -110,15 +110,28 @@ void
 sema_up (struct semaphore *sema)
 {
 	enum intr_level old_level;
+	struct thread *unblocked_thread = NULL;
 
 	ASSERT (sema != NULL);
 
 	old_level = intr_disable ();
-	if (!list_empty (&sema->waiters))
-		thread_unblock (
-			list_entry (list_pop_front (&sema->waiters), struct thread, elem));
+	if (!list_empty (&sema->waiters)){
+		//waiters에 있는 스레드들 우선순위 순서대로 다시 정렬
+		//한번 더 sort? => donation 고려
+		list_sort(&sema->waiters, priority_higher, NULL);
+		//가장 우선순위 높은 스레드를 waiters에서 꺼내줌
+		unblocked_thread = list_entry (list_pop_front (&sema->waiters), struct thread, elem);
+		//꺼낸 스레드를 ready_list에 넣어서 실행 가능한 상태로 바꿔줌
+		thread_unblock (unblocked_thread);
+	}
 	sema->value++;
 	intr_set_level (old_level);
+
+	//깨운 스레드가 있고, 그 스레드가 현재 스레드보다 우선순위가 높으면 양보해야함.
+	//waiters 에서 깨운 쓰레드가 없는데 그 priority에 접근하면 터짐.
+	if(unblocked_thread != NULL && unblocked_thread->priority > thread_current()->priority){
+		thread_yield();
+	}
 }
 
 static void sema_test_helper (void *sema_);
