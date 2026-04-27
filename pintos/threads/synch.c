@@ -351,6 +351,37 @@ struct semaphore_elem
 	struct semaphore semaphore; /* This semaphore. */
 };
 
+static bool
+cond_priority_higher (const struct list_elem *a_, const struct list_elem *b_,
+				 void *aux UNUSED)
+{
+	/*
+		a_와 _b는 struct semaphore_elem 의 elem의 주솟값을 가진다.
+		list_entry로 semaphore_elem 의 주솟값을 얻음(a)
+	*/ 
+	const struct semaphore_elem *a = list_entry (a_, struct semaphore_elem, elem);
+	const struct semaphore_elem *b = list_entry (b_, struct semaphore_elem, elem);
+	/*
+		위에서 얻어온 a(= semaphore_elem의 주솟값)에서 semaphore.waiters 리스트의 가장 첫 원소에 접근
+		그 waiters에 들어가 있는 thread에 접근하기 위해서 elem을 thread로 다시 한번 더 변환을 시켜줘야 함.
+		waiters의 원소가 thread.elem인 이유? => sema_down() 함수에서 thread_current()->elem을 push 함.
+	*/
+	const struct thread *a_thread = list_entry (list_front (&a->semaphore.waiters),
+                       struct thread, elem);
+
+	const struct thread *b_thread = list_entry (list_front (&b->semaphore.waiters),
+                       struct thread, elem);
+
+	/*
+		list_max 를 사용하려면 부호 방향을 바꿔줘야 한다.
+		왜?
+		list_max 는 내부에서 less(max, e, aux)를 호출하는데 
+		인자로 받는 bool less는 max 가 e보다 작으면 true 를 반환한다.
+		그래서 b가 a보다 클 때 true 여야 한다.
+	*/
+	return a_thread->priority < b_thread->priority;
+}
+
 /* Initializes condition variable COND.  A condition variable
    allows one piece of code to signal a condition and cooperating
    code to receive the signal and act upon it. */
@@ -406,6 +437,12 @@ cond_wait (struct condition *cond, struct lock *lock)
    An interrupt handler cannot acquire a lock, so it does not
    make sense to try to signal a condition variable within an
    interrupt handler. */
+/*
+	condition variable에서 wait 하고 있는 thread 하나를 깨우는 함수
+	cond_wait()는 조건이 맞지 않아서 잠 재우는 함수(cond->waiters에 등록함)
+	cond_signal()은 아무나 깨우는 것이 아님.
+	priority가 가장 높은 waiter 를 깨워야 한다.
+*/
 void
 cond_signal (struct condition *cond, struct lock *lock UNUSED)
 {
@@ -414,10 +451,13 @@ cond_signal (struct condition *cond, struct lock *lock UNUSED)
 	ASSERT (!intr_context ());
 	ASSERT (lock_held_by_current_thread (lock));
 
-	if (!list_empty (&cond->waiters))
-		sema_up (&list_entry (list_pop_front (&cond->waiters),
-							  struct semaphore_elem, elem)
-					  ->semaphore);
+	if (!list_empty (&cond->waiters)){
+		// 가장 높은 priority의 thread를 가져오기 위해 list_max()에서 priority max 값을 가져온다.
+		struct list_elem *max_elem = list_max(&cond->waiters, cond_priority_higher, NULL);
+		list_remove(max_elem);
+		struct semaphore *waiting_sema = &list_entry (max_elem, struct semaphore_elem, elem)->semaphore;
+		sema_up (waiting_sema);
+	}
 }
 
 /* Wakes up all threads, if any, waiting on COND (protected by
