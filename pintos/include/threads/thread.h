@@ -97,8 +97,8 @@ struct thread
 	struct list_elem sleep_elem; // EY: sleep_elem으로
 	/* Shared between thread.c and synch.c. */
 	struct list_elem elem;	   /* List element. */
-	struct list held_locks;	   // 현재 들고 있는 lock 목록
-	bool is_donated;		   //  현재 priority donation을 받고 있는지 여부
+	struct list donations;  // 나에게 기부했던 기부자들
+	struct list_elem donation_elem; // donations element
 	struct lock *waiting_lock; // 현재 이 쓰레드가 얻으려고 기다리는 lock
 
 #ifdef USERPROG

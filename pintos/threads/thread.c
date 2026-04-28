@@ -338,14 +338,16 @@ thread_set_priority (int new_priority)
 {
 	struct thread *current = thread_current ();
 	current->original_priority = new_priority;
-	if (!current->is_donated)
+	if (list_empty(&current->donations))
 	{
 		current->priority = new_priority;
 	}
 	else
 	{
-		int donation_priority = current->priority;
-		current->priority = donation_priority > new_priority ? donation_priority
+		struct thread *highest_donor
+			= list_entry (list_max (&current->donations, priority_less, NULL),
+						  struct thread, donation_elem);
+		current->priority = highest_donor->priority > new_priority ? highest_donor->priority
 															 : new_priority;
 	}
 	if (!list_empty (&ready_list)) // 새로운 우선순위가 들어왔는데, 우선순위가
@@ -465,9 +467,8 @@ init_thread (struct thread *t, const char *name, int priority)
 	t->priority = priority;
 	t->original_priority = priority;
 	/* priority donation 복구를 위해 현재 스레드가 보유한 lock들을 추적한다. */
-	list_init (&t->held_locks);
+	list_init (&t->donations);
 	t->magic = THREAD_MAGIC;
-	t->is_donated = false;
 	t->waiting_lock = NULL;
 }
 
