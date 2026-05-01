@@ -113,6 +113,8 @@ thread_init (void)
 	init_thread (initial_thread, "main", PRI_DEFAULT);
 	initial_thread->status = THREAD_RUNNING;
 	initial_thread->tid = allocate_tid ();
+	if (thread_mlfqs)
+		list_push_back (&all_thread_list, &initial_thread->all_elem);
 }
 
 /* Starts preemptive thread scheduling by enabling interrupts.
@@ -149,6 +151,12 @@ thread_tick (void)
 	else
 		kernel_ticks++;
 
+	if (thread_mlfqs) {
+		if (t != idle_thread)
+			calc_one_tick();
+		calc_one_sec();
+		calc_four_tick();
+	}
 	/* Enforce preemption. */
 	if (++thread_ticks >= TIME_SLICE)
 		intr_yield_on_return ();
@@ -367,6 +375,7 @@ thread_get_priority (void)
 {
 	return thread_current ()->priority;
 }
+
 
 /* Sets the current thread's nice value to NICE. */
 void
