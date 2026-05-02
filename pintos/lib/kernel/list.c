@@ -1,5 +1,6 @@
 #include "list.h"
 #include "../debug.h"
+#include<stdio.h>
 
 /* Our doubly linked lists have two header elements: the "head"
    just before the first element and the "tail" just after the
@@ -33,6 +34,7 @@
 
 static bool is_sorted (struct list_elem *a, struct list_elem *b,
 		list_less_func *less, void *aux) UNUSED;
+
 
 /* Returns true if ELEM is a head, false otherwise. */
 static inline bool
@@ -285,9 +287,11 @@ size_t
 list_size (struct list *list) {
 	struct list_elem *e;
 	size_t cnt = 0;
-
-	for (e = list_begin (list); e != list_end (list); e = list_next (e))
+	for (e = list_begin (list); e != list_end (list); e = list_next (e)) {
 		cnt++;
+		printf("cnt는 :%d", cnt);
+	}
+		
 	return cnt;
 }
 
@@ -486,4 +490,14 @@ list_min (struct list *list, list_less_func *less, void *aux) {
 				min = e;
 	}
 	return min;
+}
+
+bool list_exist(struct list *_list, struct list_elem *_elem){
+	struct list_elem *e;
+	for(e = list_begin(_list); e != list_end(_list); e = list_next(e)){
+		if(_elem == e){
+			return true;
+		}
+	}
+	return false;
 }

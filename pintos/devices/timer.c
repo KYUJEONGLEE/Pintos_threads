@@ -19,7 +19,7 @@
 
 /* Number of timer ticks since OS booted. */
 static struct list sleep_list; // EY:sleep_list 구조체
-static int64_t ticks;
+static int64_t ticks; // 하드웨어 틱
 /* Number of loops per timer tick.
    Initialized by timer_calibrate(). */
 static unsigned loops_per_tick;
@@ -151,7 +151,6 @@ static void
 timer_interrupt(struct intr_frame *args UNUSED)
 {
 	ticks++;
-
 	while (!list_empty(&sleep_list))
 	{
 		struct list_elem *elem = list_front(&sleep_list);

@@ -28,6 +28,27 @@ typedef int tid_t;
 #define PRI_DEFAULT 31 /* Default priority. */
 #define PRI_MAX 63	   /* Highest priority. */
 
+/*
+	MLFQS 정책에서 사용하는 변수들
+*/
+static const int F = 1 << 14; // 2^14
+typedef int fixed_t; // 고정 소수점 type 정의
+
+#define INT_TO_FIXED(n) ((n) * F)
+#define FIXED_TO_INT_ZERO(x) ((x) / F)
+#define FIXED_TO_INT_NEAR(x) ((x) >= 0 ? ((x) + F / 2) / F : ((x) - F / 2) / F)
+#define FIXED_ADD(x, y) ((x) + (y))
+#define FIXED_ADD_INT(x, n) ((x) + ((n) * F))
+#define FIXED_SUB(x, y) ((x) - (y))
+#define FIXED_SUB_INT(x, n) ((x) - ((n) * F))
+#define FIXED_MUL(x, y)	((fixed_t)(((int64_t)(x)) * (y) / F))
+#define FIXED_MUL_INT(x, n) ((x) * (n))
+#define FIXED_DIV(x, y) ((fixed_t)(((int64_t)(x)) * F / (y)))
+#define FIXED_DIV_INT(x, n) ((x) / (n))
+
+#define NICE_MAX 20
+#define NICE_MIN -20
+
 /* A kernel thread or user process.
  *
  * Each thread structure is stored in its own 4 kB page.  The
@@ -100,6 +121,12 @@ struct thread
 	struct list held_locks;	   // 현재 들고 있는 lock 목록
 	bool is_donated;		   //  현재 priority donation을 받고 있는지 여부
 	struct lock *waiting_lock; // 현재 이 쓰레드가 얻으려고 기다리는 lock
+	struct list_elem all_elem; // all_thread_list elem
+	/*
+		MLFQS 정책에서 사용하는 변수들
+	*/
+	int nice; // 해당 thread가 양보적인지 나타내는 수치
+	fixed_t recent_cpu; // 해당 thread가 최근에 사용한 cpu time에 대한 수치를 나타내는 변수
 
 #ifdef USERPROG
 	/* Owned by userprog/process.c. */
@@ -115,6 +142,10 @@ struct thread
 	unsigned magic;		  /* Detects stack overflow. */
 };
 
+struct mlfqs_list{
+	struct list ready_list;
+	int priority;
+};
 /* If false (default), use round-robin scheduler.
    If true, use multi-level feedback queue scheduler.
    Controlled by kernel command-line option "-o mlfqs". */
@@ -142,11 +173,14 @@ void thread_yield(void);
 bool priority_higher(const struct list_elem *a_, const struct list_elem *b_, void *aux UNUSED);
 int thread_get_priority(void);
 void thread_set_priority(int);
+static int calc_priority(struct thread *t);
 
 int thread_get_nice(void);
 void thread_set_nice(int);
 int thread_get_recent_cpu(void);
 int thread_get_load_avg(void);
+void calc_one_tick(); //recent_cpu++
+void calc_four_tick(); //priority재계산
 
 void do_iret(struct intr_frame *tf);
 
