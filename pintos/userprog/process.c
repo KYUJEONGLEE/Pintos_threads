@@ -165,25 +165,10 @@ error:
 
 /* Switch the current execution context to the f_name.
  * Returns -1 on fail. */
-int process_exec(void *f_name)
-{
-	char *file_name_copy = palloc_get_page(0);
-	char *command_line = f_name;
+int
+process_exec (void *f_name) {
+	char *file_name = f_name;
 	bool success;
-	char **file_name_arg = (char **)palloc_get_page(0);
-	char *save_ptr;
-
-	strlcpy(file_name_copy, f_name, PGSIZE);
-
-	char *program_name = __strtok_r(file_name_copy, " ", &save_ptr);
-	file_name_arg[0] = program_name;
-
-	uint64_t argc = 1;
-	for (char *args = __strtok_r(NULL, " ", &save_ptr); args != NULL; args = __strtok_r(NULL, " ", &save_ptr))
-	{
-		file_name_arg[argc] = args;
-		argc++;
-	}
 
 	/* We cannot use the intr_frame in the thread structure.
 	 * This is because when current thread rescheduled,
@@ -194,19 +179,19 @@ int process_exec(void *f_name)
 	_if.eflags = FLAG_IF | FLAG_MBS;
 
 	/* We first kill the current context */
-	process_cleanup();
+	process_cleanup ();
 
 	/* And then load the binary */
-	success = load(program_name, &_if);
+	success = load (file_name, &_if);
 
 	/* If load failed, quit. */
-	palloc_free_page(program_name);
+	palloc_free_page (file_name);
 	if (!success)
 		return -1;
 
 	/* Start switched process. */
-	do_iret(&_if);
-	NOT_REACHED();
+	do_iret (&_if);
+	NOT_REACHED ();
 }
 
 /* Waits for thread TID to die and returns its exit status.  If
@@ -359,11 +344,32 @@ load(const char *file_name, struct intr_frame *if_)
 		goto done;
 	process_activate(thread_current());
 
+	/*
+	arg를 포함한 file_name을 파싱해서 실제 파일 이름은 program_name에 넣고 args는 file_name_arg 배열에 넣는다.
+	*/
+
+	char *file_name_copy = palloc_get_page(0);
+	char *command_line = file_name;
+	char **file_name_arg = (char **)palloc_get_page(0);
+	char *save_ptr;
+
+	strlcpy(file_name_copy, file_name, PGSIZE);
+
+	char *program_name = __strtok_r(file_name_copy, " ", &save_ptr);
+	file_name_arg[0] = program_name;
+
+	uint64_t argc = 1;
+	for (char *args = __strtok_r(NULL, " ", &save_ptr); args != NULL; args = __strtok_r(NULL, " ", &save_ptr))
+	{
+		file_name_arg[argc] = args;
+		argc++;
+	}
+
 	/* Open executable file. */
-	file = filesys_open(file_name);
+	file = filesys_open(program_name);
 	if (file == NULL)
 	{
-		printf("load: %s: open failed\n", file_name);
+		printf("load: %s: open failed\n", program_name);
 		goto done;
 	}
 
@@ -371,7 +377,7 @@ load(const char *file_name, struct intr_frame *if_)
 	if (file_read(file, &ehdr, sizeof ehdr) != sizeof ehdr || memcmp(ehdr.e_ident, "\177ELF\2\1\1", 7) || ehdr.e_type != 2 || ehdr.e_machine != 0x3E // amd64
 		|| ehdr.e_version != 1 || ehdr.e_phentsize != sizeof(struct Phdr) || ehdr.e_phnum > 1024)
 	{
-		printf("load: %s: error loading executable\n", file_name);
+		printf("load: %s: error loading executable\n", program_name);
 		goto done;
 	}
 
@@ -442,6 +448,8 @@ load(const char *file_name, struct intr_frame *if_)
 
 	/* TODO: Your code goes here.
 	 * TODO: Implement argument passing (see project2/argument_passing.html). */
+	 copy_to_user_stack(if_, file_name_arg);
+
 
 	success = true;
 
@@ -449,6 +457,10 @@ done:
 	/* We arrive here whether the load is successful or not. */
 	file_close(file);
 	return success;
+}
+
+void copy_to_user_stack(struct intr_frame *_if,char **file_name_arg) {
+	
 }
 
 /* Checks whether PHDR describes a valid, loadable segment in
