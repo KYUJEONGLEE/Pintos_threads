@@ -208,6 +208,9 @@ int process_wait(tid_t child_tid UNUSED)
 	/* XXX: Hint) The pintos exit if process_wait (initd), we recommend you
 	 * XXX:       to add infinite loop here before
 	 * XXX:       implementing the process_wait. */
+	while(true){
+		thread_yield();
+	}
 	return -1;
 }
 
@@ -282,6 +285,9 @@ void process_activate(struct thread *next)
 #define PF_W 2 /* Writable. */
 #define PF_R 4 /* Readable. */
 
+#define DIST_RSP(origin_rsp, rsp) ((origin_rsp) - (rsp))
+#define PADDING(origin_rsp, rsp) ((((DIST_RSP(origin_rsp, rsp)) / 8) + 1) * 8) - (DIST_RSP(origin_rsp, rsp))
+
 /* Executable header.  See [ELF1] 1-4 to 1-8.
  * This appears at the very beginning of an ELF binary. */
 struct ELF64_hdr
@@ -348,23 +354,28 @@ load(const char *file_name, struct intr_frame *if_)
 	arg를 포함한 file_name을 파싱해서 실제 파일 이름은 program_name에 넣고 args는 file_name_arg 배열에 넣는다.
 	*/
 
-	char *file_name_copy = palloc_get_page(0);
+	char *file_name_copy = (char *) palloc_get_page(0);
 	char *command_line = file_name;
 	char **file_name_arg = (char **)palloc_get_page(0);
 	char *save_ptr;
 
 	strlcpy(file_name_copy, file_name, PGSIZE);
 
-	char *program_name = __strtok_r(file_name_copy, " ", &save_ptr);
+	char *program_name = strtok_r(file_name_copy, " ", &save_ptr);
 	file_name_arg[0] = program_name;
 
 	uint64_t argc = 1;
-	for (char *args = __strtok_r(NULL, " ", &save_ptr); args != NULL; args = __strtok_r(NULL, " ", &save_ptr))
+	for (char *args = strtok_r(NULL, " ", &save_ptr); args != NULL; args = strtok_r(NULL, " ", &save_ptr))
 	{
 		file_name_arg[argc] = args;
 		argc++;
 	}
 
+	printf("나여: argc. %d\n", argc);
+	for(int i = 0; i < argc; i++)
+	{
+		printf("나여 argv[%d] : %s", i, file_name_arg[i]);
+	}
 	/* Open executable file. */
 	file = filesys_open(program_name);
 	if (file == NULL)
@@ -448,8 +459,8 @@ load(const char *file_name, struct intr_frame *if_)
 
 	/* TODO: Your code goes here.
 	 * TODO: Implement argument passing (see project2/argument_passing.html). */
-	 copy_to_user_stack(if_, file_name_arg);
-
+	 copy_to_user_stack(if_, file_name_arg, argc);
+	 if_->R.rdi = argc; //rdi에 카운트 채워주기
 
 	success = true;
 
@@ -459,7 +470,36 @@ done:
 	return success;
 }
 
-void copy_to_user_stack(struct intr_frame *_if,char **file_name_arg) {
+void copy_to_user_stack(struct intr_frame *_if,char **file_name_arg, uint64_t argc) {
+	uintptr_t rsp = _if->rsp; //움직일 rsp
+	uintptr_t origin_rsp = _if->rsp; //최초 시작 rsp
+
+	for(int i = argc - 1; i >= 0; i--) {
+		size_t len = strlen(file_name_arg[i]); 
+		rsp = rsp - len;
+		memcpy(rsp, file_name_arg[i], len);
+	}
+
+	if(DIST_RSP(origin_rsp, rsp) % 8 != 0){ // padding 넣어줌
+		rsp -= PADDING(origin_rsp, rsp);
+	}
+
+	rsp -= sizeof(NULL); //NULL 채워주기
+
+	memcpy(rsp, NULL, sizeof(NULL)); //포인터들 채워줌
+	for(int i = argc - 1; i >= 0; i--) {
+		size_t size = sizeof(file_name_arg[i]);
+		rsp = rsp - size;
+		memcpy(rsp, &file_name_arg[i], size);
+		if(i == 0) { //rsi갱신
+			_if->R.rsi = rsp;
+		}
+	}
+
+	rsp -= sizeof(NULL); // NULL 채워주기
+	memcpy(rsp, NULL, sizeof(NULL));
+
+	_if->rsp = rsp; //rsp 삽입
 	
 }
 

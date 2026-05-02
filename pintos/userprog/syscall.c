@@ -7,6 +7,7 @@
 #include "userprog/gdt.h"
 #include "threads/flags.h"
 #include "intrinsic.h"
+#include "kernel/stdio.h"
 
 void syscall_entry (void);
 void syscall_handler (struct intr_frame *);
@@ -41,6 +42,21 @@ syscall_init (void) {
 void
 syscall_handler (struct intr_frame *f UNUSED) {
 	// TODO: Your implementation goes here.
-	printf ("system call!\n");
-	thread_exit ();
+	uint64_t sys_type = f->R.rax; 
+
+	switch(sys_type){
+		case SYS_WRITE:
+			if(f->R.rdi == 1) {
+				//rsi -> buf, rdx -> size
+				uint64_t buf = f->R.rsi;
+				uint64_t size = f->R.rdx;
+				putbuf(buf, (size_t)size);
+
+				f->R.rax = size; //rax갱신 
+				break;
+			}	
+	}
+
+	printf("system call!\n");
+	thread_exit();
 }

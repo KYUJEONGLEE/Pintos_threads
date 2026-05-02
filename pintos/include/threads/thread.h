@@ -179,8 +179,6 @@ int thread_get_nice(void);
 void thread_set_nice(int);
 int thread_get_recent_cpu(void);
 int thread_get_load_avg(void);
-void calc_one_tick(); //recent_cpu++
-void calc_four_tick(); //priority재계산
 
 void do_iret(struct intr_frame *tf);
 
