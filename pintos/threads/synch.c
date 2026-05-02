@@ -159,7 +159,7 @@ sema_up (struct semaphore *sema)
 	// 양보해야함. waiters 에서 깨운 쓰레드가 없는데 그 priority에 접근하면
 	// 터짐.
 	if (unblocked_thread != NULL && !intr_context ()
-		&& unblocked_thread->priority > thread_current ()->priority)
+		&& unblocked_thread->priority > thread_get_priority())
 	{
 		thread_yield ();
 	}
