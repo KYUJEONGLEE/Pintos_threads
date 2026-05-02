@@ -53,7 +53,7 @@ syscall_handler (struct intr_frame *f UNUSED) {
 				putbuf(buf, (size_t)size);
 
 				f->R.rax = size; //rax갱신 
-				break;
+				return;
 			}	
 	}
 

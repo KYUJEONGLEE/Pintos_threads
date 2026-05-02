@@ -356,9 +356,9 @@ load(const char *file_name, struct intr_frame *if_)
 
 	char *file_name_copy = (char *) palloc_get_page(0);
 	char *command_line = file_name;
-	char **file_name_arg = (char **)palloc_get_page(0);
+	char **file_name_arg = palloc_get_page(0);
 	char *save_ptr;
-
+	
 	strlcpy(file_name_copy, file_name, PGSIZE);
 
 	char *program_name = strtok_r(file_name_copy, " ", &save_ptr);
@@ -371,11 +371,15 @@ load(const char *file_name, struct intr_frame *if_)
 		argc++;
 	}
 
-	printf("나여: argc. %d\n", argc);
-	for(int i = 0; i < argc; i++)
-	{
-		printf("나여 argv[%d] : %s", i, file_name_arg[i]);
-	}
+	printf("argc : %d\n", argc);
+	// for(int i = 0; i < argc + 1; i++)
+	// {
+	// 	if(file_name_arg[i] != NULL){
+	// 		printf("argv[%d] : %s\n", i, file_name_arg[i]);
+	// 	}else{
+	// 		printf("argv[%d] : null\n", i);
+	// 	}
+	// }
 	/* Open executable file. */
 	file = filesys_open(program_name);
 	if (file == NULL)
@@ -474,30 +478,40 @@ void copy_to_user_stack(struct intr_frame *_if,char **file_name_arg, uint64_t ar
 	uintptr_t rsp = _if->rsp; //움직일 rsp
 	uintptr_t origin_rsp = _if->rsp; //최초 시작 rsp
 
+	char **arg_addr = (char **)palloc_get_page(0);
+
 	for(int i = argc - 1; i >= 0; i--) {
-		size_t len = strlen(file_name_arg[i]); 
+		size_t len = strlen(file_name_arg[i]) + 1; 
 		rsp = rsp - len;
 		memcpy(rsp, file_name_arg[i], len);
+
+		arg_addr[i] = rsp;
+
+		//rsp = rsp - len;
+		//printf("argv[%d] : %s", i, rsp);
 	}
 
 	if(DIST_RSP(origin_rsp, rsp) % 8 != 0){ // padding 넣어줌
 		rsp -= PADDING(origin_rsp, rsp);
 	}
 
-	rsp -= sizeof(NULL); //NULL 채워주기
+	uint64_t zero = 0;
 
-	memcpy(rsp, NULL, sizeof(NULL)); //포인터들 채워줌
+	rsp -= sizeof(NULL); //NULL 채워주기
+	memcpy(rsp, &zero, sizeof(NULL)); //포인터들 채워줌
 	for(int i = argc - 1; i >= 0; i--) {
 		size_t size = sizeof(file_name_arg[i]);
 		rsp = rsp - size;
-		memcpy(rsp, &file_name_arg[i], size);
+		//memcpy(rsp, &file_name_arg[i], size);
+		memcpy(rsp, &arg_addr[i], size);
+
 		if(i == 0) { //rsi갱신
 			_if->R.rsi = rsp;
 		}
 	}
 
 	rsp -= sizeof(NULL); // NULL 채워주기
-	memcpy(rsp, NULL, sizeof(NULL));
+	memcpy(rsp, &zero, sizeof(NULL));
 
 	_if->rsp = rsp; //rsp 삽입
 	
