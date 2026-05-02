@@ -45,6 +45,36 @@ syscall_handler (struct intr_frame *f UNUSED) {
 	uint64_t sys_type = f->R.rax; 
 
 	switch(sys_type){
+		case SYS_HALT:
+			break;
+
+		case SYS_EXIT:
+			break;
+
+		case SYS_FORK:
+			break;
+
+		case SYS_EXEC:
+			break;
+
+		case SYS_WAIT:
+			break;
+
+		case SYS_CREATE:
+			break;
+
+		case SYS_REMOVE:
+			break;
+
+		case SYS_OPEN:
+			break;
+
+		case SYS_FILESIZE:
+			break;
+
+		case SYS_READ:
+			break;
+
 		case SYS_WRITE:
 			if(f->R.rdi == 1) {
 				//rsi -> buf, rdx -> size
@@ -54,7 +84,20 @@ syscall_handler (struct intr_frame *f UNUSED) {
 
 				f->R.rax = size; //rax갱신 
 				return;
-			}	
+			}
+			break;
+
+		case SYS_SEEK:
+			break;
+
+		case SYS_TELL:
+			break;
+
+		case SYS_CLOSE:
+			break;
+			
+		default:
+			break;
 	}
 
 	printf("system call!\n");
