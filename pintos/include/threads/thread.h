@@ -131,6 +131,12 @@ struct thread
 #ifdef USERPROG
 	/* Owned by userprog/process.c. */
 	uint64_t *pml4; /* Page map level 4 */
+	/*
+		그냥 status에 exit status를 저장하면 안된다고 한다.
+		status 는 스레드가 실행 중인지/죽는 중인지 의 상태를 저장하는 곳이고,
+		exit_status를 따로 할당해서 프로그램이 exit(int)로 종료했다 의 상태를 저장하는 곳이다.
+	*/
+	int exit_status;
 #endif
 #ifdef VM
 	/* Table for whole virtual memory owned by thread. */

@@ -8,6 +8,7 @@
 #include "threads/flags.h"
 #include "intrinsic.h"
 #include "kernel/stdio.h"
+#include "threads/init.h"
 
 void syscall_entry (void);
 void syscall_handler (struct intr_frame *);
@@ -45,10 +46,22 @@ syscall_handler (struct intr_frame *f UNUSED) {
 	uint64_t sys_type = f->R.rax; 
 
 	switch(sys_type){
-		case SYS_HALT:
+		/*
+			Pintos를 종료하는 syscall
+			power_off() 를 호출하면 됨.
+		*/
+		case SYS_HALT: 
+			power_off();
 			break;
-
+		/*
+			현재 user program을 종료하고, 종료 상태 값을 커널에 남긴다.
+			부모가 wait 하면 이 status 값을 받아야 한다. 
+			관례적으로 0 = 성공, 0 이 아닌 값 = 실패
+		*/
 		case SYS_EXIT:
+			struct thread *curr = thread_current();
+			curr->exit_status = f->R.rdi;
+			thread_exit();
 			break;
 
 		case SYS_FORK:
@@ -101,5 +114,5 @@ syscall_handler (struct intr_frame *f UNUSED) {
 	}
 
 	printf("system call!\n");
-	thread_exit();
+	//thread_exit();
 }
