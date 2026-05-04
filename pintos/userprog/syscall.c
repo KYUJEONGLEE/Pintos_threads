@@ -127,9 +127,9 @@ syscall_handler (struct intr_frame *f UNUSED) {
 		case SYS_OPEN:
 			break;
 
-		case SYS_FILESIZE:
+		case SYS_FILESIZE:{
 			break;
-
+		}
 		/*
 			read(fd, buffer, size)
 			fd -> buffer
@@ -162,21 +162,21 @@ syscall_handler (struct intr_frame *f UNUSED) {
 			// 해당 파일에서 데이터를 읽고 buffer 에 저장한다.
 			// OPEN SYSCALL 필요?
 
-			// else if(fd > 1){
-			// 	// 일단 구현되어 있다고 하고 사용했음. 
-			// 	// 주석에 따르면 fd번호로 실제 파일 객체를 찾음 
-			// 	// 아직 테스트를 못돌림. process_get_file() 이 구현이 안되어 있음.
-			// 	struct file *file = process_get_file(fd);
-			// 	// 해당 fd를 찾아서 fd 테이블에 가서 파일을 찾았는데 없는 경우가 있을 수도 있음.
-			// 	if(file == NULL){
-			// 		f->R.rax = -1;
-    		// 		return;
-			// 	}
-			// 	off_t real_size = file_read(file, buffer, size);
+			else if(fd > 1){
+				// 일단 구현되어 있다고 하고 사용했음. 
+				// 주석에 따르면 fd번호로 실제 파일 객체를 찾음 
+				// 아직 테스트를 못돌림. process_get_file() 이 구현이 안되어 있음.
+				struct file *file = process_get_file(fd);
+				// 해당 fd를 찾아서 fd 테이블에 가서 파일을 찾았는데 없는 경우가 있을 수도 있음.
+				if(file == NULL){
+					f->R.rax = -1;
+    				return;
+				}
+				off_t real_size = file_read(file, buffer, size);
 				
-			// 	f->R.rax = real_size;
-			// 	return;
-			// }
+				f->R.rax = real_size;
+				return;
+			}
 
 			// 잘못된 fd 입력값
 			f->R.rax = -1;
