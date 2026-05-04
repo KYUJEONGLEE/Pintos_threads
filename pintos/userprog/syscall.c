@@ -83,19 +83,20 @@ syscall_handler (struct intr_frame *f UNUSED) {
 			Pintos를 종료하는 syscall
 			power_off() 를 호출하면 됨.
 		*/
-		case SYS_HALT: 
+		case SYS_HALT:{
 			power_off();
 			break;
+		}
 		/*
 			현재 user program을 종료하고, 종료 상태 값을 커널에 남긴다.
 			부모가 wait 하면 이 status 값을 받아야 한다. 
 			관례적으로 0 = 성공, 0 이 아닌 값 = 실패
 		*/
-		case SYS_EXIT:
+		case SYS_EXIT:{
 			curr->exit_status = f->R.rdi;
 			thread_exit();
 			break;
-
+		}
 		case SYS_FORK:
 			break;
 
@@ -161,22 +162,22 @@ syscall_handler (struct intr_frame *f UNUSED) {
 			// 해당 파일에서 데이터를 읽고 buffer 에 저장한다.
 			// OPEN SYSCALL 필요?
 
-			else if(fd > 1){
-				// 일단 구현되어 있다고 하고 사용했음. 
-				// 주석에 따르면 fd번호로 실제 파일 객체를 찾음 
-				// 아직 테스트를 못돌림. process_get_file() 이 구현이 안되어 있음.
-				struct file *file = process_get_file(fd);
-				// 해당 fd를 찾아서 fd 테이블에 가서 파일을 찾았는데 없는 경우가 있을 수도 있음.
-				if(file == NULL){
-					f->R.rax = -1;
-    				return;
-				}
-				off_t real_size;
-				real_size = file_read(file, buffer, size);
+			// else if(fd > 1){
+			// 	// 일단 구현되어 있다고 하고 사용했음. 
+			// 	// 주석에 따르면 fd번호로 실제 파일 객체를 찾음 
+			// 	// 아직 테스트를 못돌림. process_get_file() 이 구현이 안되어 있음.
+			// 	struct file *file = process_get_file(fd);
+			// 	// 해당 fd를 찾아서 fd 테이블에 가서 파일을 찾았는데 없는 경우가 있을 수도 있음.
+			// 	if(file == NULL){
+			// 		f->R.rax = -1;
+    		// 		return;
+			// 	}
+			// 	off_t real_size = file_read(file, buffer, size);
 				
-				f->R.rax = real_size;
-				return;
-			}
+			// 	f->R.rax = real_size;
+			// 	return;
+			// }
+
 			// 잘못된 fd 입력값
 			f->R.rax = -1;
 			return;
@@ -189,13 +190,32 @@ syscall_handler (struct intr_frame *f UNUSED) {
 
 			check_valid_pointer(buffer, size - 1);
 
-			if(fd == 1) {
-				putbuf(buffer, (size_t)size);
-
-				f->R.rax = size; //rax갱신 
+			if(fd == 0){
+				f->R.rax = -1;
 				return;
 			}
-			break;
+			else if(fd == 1) {
+				putbuf(buffer, (size_t)size);
+
+				f->R.rax = size;
+				return;
+			}
+			else if(fd > 1){
+				// fd가 1 이상이라면 해당 fd에 맞는 열려 있는 파일을 찾고
+				// buffer 에 있는걸 읽고, 그 파일에 쓴다.
+				// 쓴 byte 수(size)를 rax에 반환.
+				struct file *file = process_get_file(fd);
+				if(file == NULL){
+					f->R.rax = -1;
+					return;
+				}
+				off_t real_size = file_write(file, buffer, size);
+				
+				f->R.rax = real_size;
+				return;
+			}
+			f->R.rax = -1;
+			return;
 		}
 		case SYS_SEEK:
 			break;
