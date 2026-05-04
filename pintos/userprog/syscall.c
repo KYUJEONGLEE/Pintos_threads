@@ -97,17 +97,23 @@ syscall_handler (struct intr_frame *f UNUSED) {
 		case SYS_WAIT:
 			break;
 
-		case SYS_CREATE:
-			char *name = f->R.rdi;
-			int initial_size = f->R.rsi;
+		case SYS_CREATE:{
+			const char *file = f->R.rdi;
+			unsigned initial_size = f->R.rsi;
 
-			check_valid_addr(name);
-			
-			f->R.rax = filesys_create(name, initial_size);
+			check_valid_addr(file);
+
+			f->R.rax = filesys_create(file, initial_size);
 			return;
+		}
+		case SYS_REMOVE:{
+			const char *file = f->R.rdi;
 
-		case SYS_REMOVE:
-			break;
+			check_valid_addr(file);
+
+			f->R.rax = filesys_remove(file);
+			return;
+		}
 
 		case SYS_OPEN:
 			break;
@@ -118,7 +124,7 @@ syscall_handler (struct intr_frame *f UNUSED) {
 		case SYS_READ:
 			break;
 
-		case SYS_WRITE:
+		case SYS_WRITE:{
 			uint64_t buf = f->R.rsi;
 			uint64_t size = f->R.rdx;
 
@@ -132,7 +138,7 @@ syscall_handler (struct intr_frame *f UNUSED) {
 				return;
 			}
 			break;
-
+		}
 		case SYS_SEEK:
 			break;
 
