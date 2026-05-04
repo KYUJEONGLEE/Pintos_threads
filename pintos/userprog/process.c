@@ -484,9 +484,6 @@ void copy_to_user_stack(struct intr_frame *_if,char **file_name_arg, uint64_t ar
 		memcpy(rsp, file_name_arg[i], len);
 
 		arg_addr[i] = rsp;
-
-		//rsp = rsp - len;
-		//printf("argv[%d] : %s", i, rsp);
 	}
 
 	if(DIST_RSP(origin_rsp, rsp) % 8 != 0){ // padding 넣어줌

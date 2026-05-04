@@ -12,6 +12,8 @@
 
 void syscall_entry (void);
 void syscall_handler (struct intr_frame *);
+void check_valid_addr(void *addr);
+void check_valid_pointer(void *start, size_t size);
 
 /* System call.
  *
@@ -38,6 +40,27 @@ syscall_init (void) {
 	write_msr(MSR_SYSCALL_MASK,
 			FLAG_IF | FLAG_TF | FLAG_DF | FLAG_IOPL | FLAG_AC | FLAG_NT);
 }
+
+void check_valid_addr(void *addr){
+	struct thread *curr = thread_current();
+	if(!is_user_vaddr(addr)){
+		//exit(-1);
+		thread_exit();
+	}
+
+	if(pml4_get_page(curr->pml4, addr) == NULL){
+		thread_exit();
+		//exit(-1);
+	}
+}
+
+void check_valid_pointer(void *start, size_t size){
+	uint64_t end = start + (uint64_t)size;
+	for(uint64_t *begin = pg_round_down(start); begin <= end; begin += PGSIZE){
+		check_valid_addr(begin);
+	}
+}
+
 
 /* The main system call interface */
 void
@@ -89,10 +112,13 @@ syscall_handler (struct intr_frame *f UNUSED) {
 			break;
 
 		case SYS_WRITE:
+			uint64_t buf = f->R.rsi;
+			uint64_t size = f->R.rdx;
+
+			check_valid_pointer(buf, size - 1);
+
 			if(f->R.rdi == 1) {
 				//rsi -> buf, rdx -> size
-				uint64_t buf = f->R.rsi;
-				uint64_t size = f->R.rdx;
 				putbuf(buf, (size_t)size);
 
 				f->R.rax = size; //rax갱신 
@@ -112,6 +138,4 @@ syscall_handler (struct intr_frame *f UNUSED) {
 		default:
 			break;
 	}
-
-	printf("system call!\n");
 }
