@@ -376,15 +376,6 @@ load(const char *file_name, struct intr_frame *if_)
 		file_name_arg[argc] = args;
 		argc++;
 	}
-
-	// for(int i = 0; i < argc + 1; i++)
-	// {
-	// 	if(file_name_arg[i] != NULL){
-	// 		printf("argv[%d] : %s\n", i, file_name_arg[i]);
-	// 	}else{
-	// 		printf("argv[%d] : null\n", i);
-	// 	}
-	// }
 	/* Open executable file. */
 	file = filesys_open(program_name);
 	if (file == NULL)
