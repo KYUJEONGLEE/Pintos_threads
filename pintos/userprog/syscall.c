@@ -9,6 +9,7 @@
 #include "intrinsic.h"
 #include "kernel/stdio.h"
 #include "threads/init.h"
+#include "filesys/filesys.h"
 
 void syscall_entry (void);
 void syscall_handler (struct intr_frame *);
@@ -97,7 +98,13 @@ syscall_handler (struct intr_frame *f UNUSED) {
 			break;
 
 		case SYS_CREATE:
-			break;
+			char *name = f->R.rdi;
+			int initial_size = f->R.rsi;
+
+			check_valid_addr(name);
+			
+			f->R.rax = filesys_create(name, initial_size);
+			return;
 
 		case SYS_REMOVE:
 			break;
