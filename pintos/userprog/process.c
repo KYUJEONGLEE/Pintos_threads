@@ -223,6 +223,14 @@ void process_exit(void)
 	 * TODO: project2/process_termination.html).
 	 * TODO: We recommend you to implement process resource cleanup here. */
 
+	/*
+		프로세스가 종료될 때 출력해야 하는 메시지를 구현해라.
+		process_termination.html 을 참고하라.
+		exit: exit(57) 가 출력되어야 함.
+	*/
+	if(curr->pml4 != NULL){
+		printf("%s: exit(%d)\n", curr->name, curr->exit_status);
+	}
 	process_cleanup();
 }
 
@@ -370,16 +378,6 @@ load(const char *file_name, struct intr_frame *if_)
 		file_name_arg[argc] = args;
 		argc++;
 	}
-
-	printf("argc : %d\n", argc);
-	// for(int i = 0; i < argc + 1; i++)
-	// {
-	// 	if(file_name_arg[i] != NULL){
-	// 		printf("argv[%d] : %s\n", i, file_name_arg[i]);
-	// 	}else{
-	// 		printf("argv[%d] : null\n", i);
-	// 	}
-	// }
 	/* Open executable file. */
 	file = filesys_open(program_name);
 	if (file == NULL)
