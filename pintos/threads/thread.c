@@ -655,6 +655,7 @@ init_thread (struct thread *t, const char *name, int priority) // thread 구조�
 	
 	t->nice = 0;
 	t->recent_cpu = 0;
+	t->exit_status = -1;
 }
 
 /* Chooses and returns the next thread to be scheduled.  Should

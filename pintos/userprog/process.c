@@ -228,7 +228,9 @@ void process_exit(void)
 		process_termination.html 을 참고하라.
 		exit: exit(57) 가 출력되어야 함.
 	*/
-	printf("%s: exit(%d)\n", curr->name, curr->exit_status);
+	if(curr->pml4 != NULL){
+		printf("%s: exit(%d)\n", curr->name, curr->exit_status);
+	}
 	process_cleanup();
 }
 

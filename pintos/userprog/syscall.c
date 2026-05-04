@@ -44,7 +44,8 @@ void
 syscall_handler (struct intr_frame *f UNUSED) {
 	// TODO: Your implementation goes here.
 	uint64_t sys_type = f->R.rax; 
-
+	struct thread *curr = thread_current();
+	
 	switch(sys_type){
 		/*
 			Pintos를 종료하는 syscall
@@ -59,7 +60,6 @@ syscall_handler (struct intr_frame *f UNUSED) {
 			관례적으로 0 = 성공, 0 이 아닌 값 = 실패
 		*/
 		case SYS_EXIT:
-			struct thread *curr = thread_current();
 			curr->exit_status = f->R.rdi;
 			thread_exit();
 			break;
