@@ -15,6 +15,12 @@ void syscall_handler (struct intr_frame *);
 void check_valid_addr(void *addr);
 void check_valid_pointer(void *start, size_t size);
 
+// 껍데기
+int process_add_file(struct file *file); //새로 열린 파일을 fd table에 등록하고 fd번호 리턴
+struct file *process_get_file(int fd); //fd번호로 실제 파일 객체를 찾음
+void process_close_file(int fd); //fd 하나를 닫음
+void process_close_all_files(void); //현재 프로세스가 열어둔 모든 파일을 닫음
+
 /* System call.
  *
  * Previously system call services was handled by the interrupt handler

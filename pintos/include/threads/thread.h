@@ -5,6 +5,7 @@
 #include <list.h>
 #include <stdint.h>
 #include "threads/interrupt.h"
+#include <file.h>
 #ifdef VM
 #include "vm/vm.h"
 #endif
@@ -127,6 +128,10 @@ struct thread
 	*/
 	int nice; // 해당 thread가 양보적인지 나타내는 수치
 	fixed_t recent_cpu; // 해당 thread가 최근에 사용한 cpu time에 대한 수치를 나타내는 변수
+
+	//File Descriptor
+	struct file * fdt[128]; //각 파일을 가리키는 인덱스 128짜리 fdt테이블 생성
+	int next_fd;
 
 #ifdef USERPROG
 	/* Owned by userprog/process.c. */
