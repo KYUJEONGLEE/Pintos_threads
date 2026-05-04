@@ -10,11 +10,19 @@
 #include "kernel/stdio.h"
 #include "threads/init.h"
 #include "filesys/filesys.h"
+#include "devices/input.h"
+#include "filesys/file.h"
 
 void syscall_entry (void);
 void syscall_handler (struct intr_frame *);
 void check_valid_addr(void *addr);
 void check_valid_pointer(void *start, size_t size);
+
+// 껍데기
+int process_add_file(struct file *file); //새로 열린 파일을 fd table에 등록하고 fd번호 리턴
+struct file *process_get_file(int fd); //fd번호로 실제 파일 객체를 찾음
+void process_close_file(int fd); //fd 하나를 닫음
+void process_close_all_files(void); //현재 프로세스가 열어둔 모든 파일을 닫음
 
 /* System call.
  *
@@ -121,18 +129,68 @@ syscall_handler (struct intr_frame *f UNUSED) {
 		case SYS_FILESIZE:
 			break;
 
-		case SYS_READ:
-			break;
+		/*
+			read(fd, buffer, size)
+			fd -> buffer
+			fd에서 읽고, buffer에 씀
+		*/
+		case SYS_READ:{
+			int fd = f->R.rdi;
+			char *buffer = (char *)f->R.rsi;
+			unsigned size = f->R.rdx; 
+
+			check_valid_pointer(buffer, size - 1);
+
+			if(fd == 1){
+				f->R.rax = -1;
+				return;
+			}
+			else if(fd == 0){
+				// input_getc() => 사용자로부터 한글자를 입력받음
+				// 한 글자씩 받아서 size 만큼 반복하면서 buffer에 채워넣음.
+				for(int i = 0; i < size; i++){
+					buffer[i] = input_getc();
+				}
+				// 실제 읽은 바이트 수를 반환해야 하는데?
+				// 그냥 size를 rax에 넣으면 안될거같은데
+				// 사용자 입력값은 중간에 NULL 을 입력해도 끝까지 입력하니까 상관없다?
+				f->R.rax = size;
+				return;
+			}
+			// fd가 1보다 크면, 해당 fd에 적혀있는 번호에 맞는 파일을 열어야 함 X => 해당하는 열린 파일을 찾는다?
+			// 해당 파일에서 데이터를 읽고 buffer 에 저장한다.
+			// OPEN SYSCALL 필요?
+
+			else if(fd > 1){
+				// 일단 구현되어 있다고 하고 사용했음. 
+				// 주석에 따르면 fd번호로 실제 파일 객체를 찾음 
+				// 아직 테스트를 못돌림. process_get_file() 이 구현이 안되어 있음.
+				struct file *file = process_get_file(fd);
+				// 해당 fd를 찾아서 fd 테이블에 가서 파일을 찾았는데 없는 경우가 있을 수도 있음.
+				if(file == NULL){
+					f->R.rax = -1;
+    				return;
+				}
+				off_t real_size;
+				real_size = file_read(file, buffer, size);
+				
+				f->R.rax = real_size;
+				return;
+			}
+			// 잘못된 fd 입력값
+			f->R.rax = -1;
+			return;
+		}
 
 		case SYS_WRITE:{
-			uint64_t buf = f->R.rsi;
-			uint64_t size = f->R.rdx;
+			int fd = f->R.rdi;
+			void *buffer = f->R.rsi;
+			unsigned size = f->R.rdx;
 
-			check_valid_pointer(buf, size - 1);
+			check_valid_pointer(buffer, size - 1);
 
-			if(f->R.rdi == 1) {
-				//rsi -> buf, rdx -> size
-				putbuf(buf, (size_t)size);
+			if(fd == 1) {
+				putbuf(buffer, (size_t)size);
 
 				f->R.rax = size; //rax갱신 
 				return;
