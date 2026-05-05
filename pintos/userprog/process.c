@@ -166,6 +166,99 @@ duplicate_pte(uint64_t *pte, void *va, void *aux)
 }
 #endif
 
+static bool
+duplicate_fd_table(struct thread *parent, struct thread *child)
+{
+	child->next_fd = parent->next_fd;
+	for (int fd = 0; fd < FDT_SIZE; fd++)
+	{
+		struct file *file_ = parent->fdt[fd];
+
+		if (file_ == NULL)
+		{
+			child->fdt[fd] = NULL;
+			continue;
+		}
+
+		child->fdt[fd] = file_duplicate(file_);
+		// 중간까지 복사하다가 실패하면 지금까지 하던거 다 ROLLBACK
+		if (child->fdt[fd] == NULL)
+		{
+			for (int i = 0; i < fd; i++)
+			{
+				if (child->fdt[i] != NULL)
+				{
+					file_close(child->fdt[i]);
+					child->fdt[i] = NULL;
+				}
+			}
+			return false;
+		}
+	}
+	return true;
+}
+
+int
+process_add_file(struct file *file)
+{
+	if (file == NULL)
+		return -1;
+
+	struct thread *t = thread_current();
+
+	if (t->next_fd < 2 || FDT_SIZE <= t->next_fd)
+		t->next_fd = 2;
+
+	for (int cnt = 0; cnt < FDT_SIZE - 2; cnt++)
+	{
+		int idx = t->next_fd;
+		if (t->fdt[idx] == NULL)
+		{
+			t->fdt[idx] = file;
+			t->next_fd = idx + 1;
+			if (FDT_SIZE <= t->next_fd)
+				t->next_fd = 2;
+			return idx;
+		}
+		t->next_fd++;
+		if (FDT_SIZE <= t->next_fd)
+			t->next_fd = 2;
+	}
+	return -1;
+}
+
+struct file *
+process_get_file(int fd)
+{
+	if (fd <= 1 || FDT_SIZE <= fd)
+		return NULL;
+
+	struct thread *t = thread_current();
+	return t->fdt[fd];
+}
+
+void
+process_close_file(int fd)
+{
+	struct file *file = process_get_file(fd);
+	struct thread *t = thread_current();
+
+	if (file == NULL)
+		return;
+
+	file_close(file);
+	t->fdt[fd] = NULL;
+	if (fd < t->next_fd)
+		t->next_fd = fd;
+}
+
+void
+process_close_all_files(void)
+{
+	for (int fd = 2; fd < FDT_SIZE; fd++)
+		process_close_file(fd);
+}
+
 /* A thread function that copies parent's execution context.
  * Hint) parent->tf does not hold the userland context of the process.
  *       That is, you are required to pass second argument of process_fork to
@@ -203,8 +296,10 @@ __do_fork(void *aux)
 	 * TODO:       in include/filesys/file.h. Note that parent should not return
 	 * TODO:       from the fork() until this function successfully duplicates
 	 * TODO:       the resources of parent.*/
-
-	process_init();
+	if (!duplicate_fd_table(parent, current))
+	{
+		goto error;
+	}
 
 	/* Finally, switch to the newly created process. */
 	if_.R.rax = 0; // 자식 쓰레드(프로세스) 반환 0
@@ -285,6 +380,7 @@ void process_exit(void)
 	*/
 	if(curr->pml4 != NULL){
 		printf("%s: exit(%d)\n", curr->name, curr->exit_status);
+		process_close_all_files();
 	}
 	process_cleanup();
 }
