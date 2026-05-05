@@ -159,11 +159,7 @@ void syscall_handler(struct intr_frame *f UNUSED)
 			현재 프로세스를 유지 한 채, 현재 프로세스의 메모리 공간을 새 프로그램으로 갈아 끼운다.
 		*/
 		case SYS_EXEC:{
-			const char *cmd_line = (const char *)f->R.rdi; // cmd_line 받아옴
-			
-			
-			
-			return;
+			break;
 		}
 
 		case SYS_WAIT:
