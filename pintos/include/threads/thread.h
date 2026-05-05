@@ -27,7 +27,7 @@ typedef int tid_t;
 #define PRI_MIN 0	   /* Lowest priority. */
 #define PRI_DEFAULT 31 /* Default priority. */
 #define PRI_MAX 63	   /* Highest priority. */
-#define fdt_size 128 //fdt table size
+#define FDT_SIZE 128 //fdt table size
 
 /*
 	MLFQS 정책에서 사용하는 변수들
@@ -128,14 +128,11 @@ struct thread
 	*/
 	int nice; // 해당 thread가 양보적인지 나타내는 수치
 	fixed_t recent_cpu; // 해당 thread가 최근에 사용한 cpu time에 대한 수치를 나타내는 변수
-	
+
+
 	//File Descriptor
-	struct file * fdt[128]; //각 파일을 가리키는 인덱스 128짜리 fdt테이블 생성
+	struct file * fdt[FDT_SIZE]; //각 파일을 가리키는 인덱스 128짜리 fdt테이블 생성
 	int next_fd;
-
-
-	//File Descriptor
-	struct file * fdt[fdt_size]; //각 파일을 가리키는 인덱스 128짜리 fdt테이블 생성
 
 #ifdef USERPROG
 	/* Owned by userprog/process.c. */
@@ -156,6 +153,7 @@ struct thread
 	struct intr_frame tf; /* Information for switching */
 	unsigned magic;		  /* Detects stack overflow. */
 };
+
 
 struct mlfqs_list{
 	struct list ready_list;
