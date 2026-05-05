@@ -12,6 +12,7 @@
 #include "threads/vaddr.h"
 #include "intrinsic.h"
 #include "devices/timer.h"
+#include "stdio.h"
 
 #ifdef USERPROG
 #include "userprog/process.h"
@@ -116,7 +117,7 @@ thread_init (void) // 전역변수 초기화
 		= { .size = sizeof (gdt) - 1, .address = (uint64_t)gdt };
 	lgdt (&gdt_ds);
 
-	/* Init the globla thread context */
+	/* Init the global thread context */
 	lock_init (&tid_lock);
 	list_init (&destruction_req);
 	list_init(&all_thread_list);
@@ -126,7 +127,7 @@ thread_init (void) // 전역변수 초기화
 		{
 			list_init(&(mlfqs_ready_list[i].ready_list));
 			mlfqs_ready_list[i].priority = i;
-		}		
+		}
 	}
 	else{
 		list_init (&ready_list);
@@ -180,7 +181,7 @@ update_load_avg (void) {
 	}
 	//load_avg = (59/60) * load_avg + (1/60) * ready_threads
 	load_avg = FIXED_ADD((FIXED_MUL((FIXED_DIV_INT(INT_TO_FIXED(59), 60)), load_avg)), (FIXED_MUL_INT((FIXED_DIV_INT(INT_TO_FIXED(1), 60)) , cnt_ready_thread)));
-	
+
 }
 
 static void
@@ -197,7 +198,7 @@ calc_one_sec (void)
 	if(timer_ticks() % TIMER_FREQ == 0) {
 	update_load_avg();
 		struct thread * to_thread;
-		struct list_elem *e; 
+		struct list_elem *e;
 		for(e = list_begin (&all_thread_list); e != list_end (&all_thread_list); e = list_next (e)){
 			to_thread = list_entry(e, struct thread, all_elem);
 			update_recent_cpu(to_thread);
@@ -420,7 +421,7 @@ thread_yield (void)
 	old_level = intr_disable ();
 	if (curr != idle_thread) {
 		if(thread_mlfqs){
-			list_push_back(&(mlfqs_ready_list[thread_get_priority()].ready_list), &curr->elem); 
+			list_push_back(&(mlfqs_ready_list[thread_get_priority()].ready_list), &curr->elem);
 		}else{
 			list_insert_ordered (&ready_list, &curr->elem, priority_higher, NULL);
 		}
@@ -495,11 +496,11 @@ static int calc_priority(struct thread *t){
 	int nice = t->nice;
 	fixed_t recent_cpu = t->recent_cpu;
 	int result = PRI_MAX - FIXED_TO_INT_ZERO(FIXED_DIV_INT(recent_cpu, 4)) - (2 * nice);
-	if(result > PRI_MAX) 
-	{ 
+	if(result > PRI_MAX)
+	{
 		return PRI_MAX;
 	}
-	else if(result < PRI_MIN) 
+	else if(result < PRI_MIN)
 	{
 		return PRI_MIN;
 	}
@@ -572,7 +573,7 @@ thread_get_load_avg (void)
 {
 	/* TODO: Your implementation goes here */
 	return FIXED_TO_INT_NEAR(FIXED_MUL_INT(load_avg, 100));
-	
+
 }
 /* Returns 100 times the current thread's recent_cpu value. */
 int
@@ -634,6 +635,7 @@ kernel_thread (thread_func *function, void *aux)
 
 /* Does basic initialization of T as a blocked thread named
    NAME. */
+
 static void
 init_thread (struct thread *t, const char *name, int priority) // thread 구조체 안의 요소들을 초기화
 {
@@ -641,7 +643,7 @@ init_thread (struct thread *t, const char *name, int priority) // thread 구조�
 	ASSERT (PRI_MIN <= priority && priority <= PRI_MAX);
 	ASSERT (name != NULL);
 
-	memset (t, 0, sizeof *t);
+	memset (t, 0, sizeof *t); //여기서 테이블 포인터들도 자동으로 초기화됨.
 	t->status = THREAD_BLOCKED;
 	strlcpy (t->name, name, sizeof t->name);
 	t->tf.rsp = (uint64_t)t + PGSIZE - sizeof (void *);
@@ -652,10 +654,11 @@ init_thread (struct thread *t, const char *name, int priority) // thread 구조�
 	t->magic = THREAD_MAGIC;
 	t->is_donated = false;
 	t->waiting_lock = NULL;
-	
+
 	t->nice = 0;
 	t->recent_cpu = 0;
 	t->exit_status = -1;
+	//Read, write에서 각각 fdt[0], fdt[1]이면 키보드입력, 콘솔 출력처리
 }
 
 /* Chooses and returns the next thread to be scheduled.  Should
@@ -665,7 +668,7 @@ init_thread (struct thread *t, const char *name, int priority) // thread 구조�
    idle_thread. */
 static struct thread *
 next_thread_to_run (void)
-{	
+{
 	if(thread_mlfqs) {
 		for(int i = PRI_MAX; i >= PRI_MIN; i--){
 			if(!list_empty(&(mlfqs_ready_list[i].ready_list))){
@@ -796,7 +799,7 @@ do_schedule (int status)
 	}
 	thread_current ()->status = status;
 	schedule ();
-	
+
 }
 
 static void
