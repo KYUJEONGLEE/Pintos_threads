@@ -242,11 +242,11 @@ void handle_sys_read(struct intr_frame *f)
 }
 
 void check_valid_str(char *str){
-	for(int i = 0;; i++){
+	for(int i = 0;;i++){
+		check_valid_addr(&str[i]);
 		if(str[i] == '\0'){
 			break;
 		}
-		check_valid_addr(&str[i]);
 	}
 }
 
