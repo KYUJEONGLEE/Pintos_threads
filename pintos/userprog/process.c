@@ -315,8 +315,8 @@ error:
 
 /* Switch the current execution context to the f_name.
  * Returns -1 on fail. */
-int
-process_exec (void *f_name) {
+int process_exec(void *f_name)
+{
 	char *file_name = f_name;
 	bool success;
 
@@ -329,19 +329,19 @@ process_exec (void *f_name) {
 	_if.eflags = FLAG_IF | FLAG_MBS;
 
 	/* We first kill the current context */
-	process_cleanup ();
+	process_cleanup();
 
 	/* And then load the binary */
-	success = load (file_name, &_if);
+	success = load(file_name, &_if);
 
 	/* If load failed, quit. */
-	palloc_free_page (file_name);
+	palloc_free_page(file_name);
 	if (!success)
 		return -1;
 
 	/* Start switched process. */
-	do_iret (&_if);
-	NOT_REACHED ();
+	do_iret(&_if);
+	NOT_REACHED();
 }
 
 /* Waits for thread TID to die and returns its exit status.  If
@@ -358,7 +358,8 @@ int process_wait(tid_t child_tid UNUSED)
 	/* XXX: Hint) The pintos exit if process_wait (initd), we recommend you
 	 * XXX:       to add infinite loop here before
 	 * XXX:       implementing the process_wait. */
-	while(true){
+	while (true)
+	{
 		thread_yield();
 	}
 	return -1;
@@ -378,7 +379,8 @@ void process_exit(void)
 		process_termination.html 을 참고하라.
 		exit: exit(57) 가 출력되어야 함.
 	*/
-	if(curr->pml4 != NULL){
+	if (curr->pml4 != NULL)
+	{
 		printf("%s: exit(%d)\n", curr->name, curr->exit_status);
 		process_close_all_files();
 	}
@@ -513,11 +515,11 @@ load(const char *file_name, struct intr_frame *if_)
 	arg를 포함한 file_name을 파싱해서 실제 파일 이름은 program_name에 넣고 args는 file_name_arg 배열에 넣는다.
 	*/
 
-	char *file_name_copy = (char *) palloc_get_page(0);
+	char *file_name_copy = (char *)palloc_get_page(0);
 	char *command_line = file_name;
 	char **file_name_arg = palloc_get_page(0);
 	char *save_ptr;
-	
+
 	strlcpy(file_name_copy, file_name, PGSIZE);
 
 	char *program_name = strtok_r(file_name_copy, " ", &save_ptr);
@@ -612,8 +614,8 @@ load(const char *file_name, struct intr_frame *if_)
 
 	/* TODO: Your code goes here.
 	 * TODO: Implement argument passing (see project2/argument_passing.html). */
-	 copy_to_user_stack(if_, file_name_arg, argc);
-	 if_->R.rdi = argc; //rdi에 카운트 채워주기
+	copy_to_user_stack(if_, file_name_arg, argc);
+	if_->R.rdi = argc; // rdi에 카운트 채워주기
 
 	success = true;
 
@@ -623,35 +625,40 @@ done:
 	return success;
 }
 
-void copy_to_user_stack(struct intr_frame *_if,char **file_name_arg, uint64_t argc) {
-	uintptr_t rsp = _if->rsp; //움직일 rsp
-	uintptr_t origin_rsp = _if->rsp; //최초 시작 rsp
+void copy_to_user_stack(struct intr_frame *_if, char **file_name_arg, uint64_t argc)
+{
+	uintptr_t rsp = _if->rsp;		 // 움직일 rsp
+	uintptr_t origin_rsp = _if->rsp; // 최초 시작 rsp
 
 	char **arg_addr = (char **)palloc_get_page(0);
 
-	for(int i = argc - 1; i >= 0; i--) {
-		size_t len = strlen(file_name_arg[i]) + 1; 
+	for (int i = argc - 1; i >= 0; i--)
+	{
+		size_t len = strlen(file_name_arg[i]) + 1;
 		rsp = rsp - len;
 		memcpy(rsp, file_name_arg[i], len);
 
 		arg_addr[i] = rsp;
 	}
 
-	if(DIST_RSP(origin_rsp, rsp) % 8 != 0){ // padding 넣어줌
+	if (DIST_RSP(origin_rsp, rsp) % 8 != 0)
+	{ // padding 넣어줌
 		rsp -= PADDING(origin_rsp, rsp);
 	}
 
 	uint64_t zero = 0;
 
-	rsp -= sizeof(NULL); //NULL 채워주기
-	memcpy(rsp, &zero, sizeof(NULL)); //포인터들 채워줌
-	for(int i = argc - 1; i >= 0; i--) {
+	rsp -= sizeof(NULL);			  // NULL 채워주기
+	memcpy(rsp, &zero, sizeof(NULL)); // 포인터들 채워줌
+	for (int i = argc - 1; i >= 0; i--)
+	{
 		size_t size = sizeof(file_name_arg[i]);
 		rsp = rsp - size;
-		//memcpy(rsp, &file_name_arg[i], size);
+		// memcpy(rsp, &file_name_arg[i], size);
 		memcpy(rsp, &arg_addr[i], size);
 
-		if(i == 0) { //rsi갱신
+		if (i == 0)
+		{ // rsi갱신
 			_if->R.rsi = rsp;
 		}
 	}
@@ -659,8 +666,7 @@ void copy_to_user_stack(struct intr_frame *_if,char **file_name_arg, uint64_t ar
 	rsp -= sizeof(NULL); // NULL 채워주기
 	memcpy(rsp, &zero, sizeof(NULL));
 
-	_if->rsp = rsp; //rsp 삽입
-	
+	_if->rsp = rsp; // rsp 삽입
 }
 
 /* Checks whether PHDR describes a valid, loadable segment in
