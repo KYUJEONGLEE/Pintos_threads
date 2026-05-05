@@ -77,6 +77,15 @@ void check_valid_pointer(void *start, size_t size){
 	}
 }
 
+void check_valid_str(char *str){
+	for(int i = 0;; i++){
+		if(str[i] == '\0'){
+			break;
+		}
+		check_valid_addr(&str[i]);
+	}
+}
+
 int process_add_file(struct file *file) // 새로 열린 파일을 fd table에 등록하고 fd번호 리턴. 실패시 -1 리턴
 {
 	if(file == NULL) { return -1; } //잘못된 파일 들어오면
