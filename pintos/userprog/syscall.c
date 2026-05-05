@@ -17,6 +17,7 @@ void syscall_entry (void);
 void syscall_handler (struct intr_frame *);
 void check_valid_addr(void *addr);
 void check_valid_pointer(void *start, size_t size);
+void check_valid_str(char *str);
 
 // 껍데기
 int process_add_file(struct file *file); //새로 열린 파일을 fd table에 등록하고 fd번호 리턴
@@ -70,6 +71,14 @@ void check_valid_pointer(void *start, size_t size){
 	}
 }
 
+void check_valid_str(char *str){
+	for(int i = 0;; i++){
+		if(str[i] == '\0'){
+			break;
+		}
+		check_valid_addr(&str[i]);
+	}
+}
 
 /* The main system call interface */
 void
@@ -107,18 +116,19 @@ syscall_handler (struct intr_frame *f UNUSED) {
 			break;
 
 		case SYS_CREATE:{
+			// file 이름 문자열의 주소를 검사?
 			const char *file = (const char*)f->R.rdi;
 			unsigned initial_size = (unsigned)f->R.rsi;
-
-			check_valid_addr(file);
-
+			
+			check_valid_str(file);
+			
 			f->R.rax = filesys_create(file, initial_size);
 			return;
 		}
 		case SYS_REMOVE:{
 			const char *file = f->R.rdi;
 
-			check_valid_addr(file);
+			check_valid_str(file);
 
 			f->R.rax = filesys_remove(file);
 			return;
@@ -128,7 +138,11 @@ syscall_handler (struct intr_frame *f UNUSED) {
 			break;
 
 		case SYS_FILESIZE:{
-			break;
+			// file.c 에 file_length(file *)
+			// file 안에 있는 바이트 개수를 반환하는 함수 사용
+			int fd = f->R.rdi;
+
+			return;
 		}
 		/*
 			read(fd, buffer, size)
@@ -140,6 +154,10 @@ syscall_handler (struct intr_frame *f UNUSED) {
 			char *buffer = (char *)f->R.rsi;
 			unsigned size = (unsigned)f->R.rdx; 
 
+			if(size == 0){
+				f->R.rax = 0;
+				return;
+			}
 			check_valid_pointer(buffer, size - 1);
 
 			if(fd == 1){
@@ -187,6 +205,11 @@ syscall_handler (struct intr_frame *f UNUSED) {
 			int fd = f->R.rdi;
 			void *buffer = f->R.rsi;
 			unsigned size = f->R.rdx;
+
+			if(size == 0){
+				f->R.rax = 0;
+				return;
+			}
 
 			check_valid_pointer(buffer, size - 1);
 
