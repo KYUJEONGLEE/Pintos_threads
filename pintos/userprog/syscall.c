@@ -12,18 +12,13 @@
 #include "filesys/filesys.h"
 #include "devices/input.h"
 #include "filesys/file.h"
+#include "userprog/process.h"
 
 void syscall_entry (void);
 void syscall_handler (struct intr_frame *);
 void check_valid_addr(void *addr);
 void check_valid_pointer(void *start, size_t size);
 void check_valid_str(char *str);
-
-// 껍데기
-int process_add_file(struct file *file); //새로 열린 파일을 fd table에 등록하고 fd번호 리턴
-struct file *process_get_file(int fd); //fd번호로 실제 파일 객체를 찾음
-void process_close_file(int fd); //fd 하나를 닫음
-void process_close_all_files(void); //현재 프로세스가 열어둔 모든 파일을 닫음
 
 // 껍데기
 int process_add_file(struct file *file); //새로 열린 파일을 fd table에 등록하고 fd번호 리턴
@@ -154,11 +149,22 @@ void syscall_handler(struct intr_frame *f UNUSED)
 			thread_exit();
 			break;
 		}
+
 		case SYS_FORK:
 			break;
 
-		case SYS_EXEC:
-			break;
+		/*
+			현재 프로세스를 지정된 이름의 실행 파일로 변경합니다
+			새 프로세스를 만드는 것이 아니다.
+			현재 프로세스를 유지 한 채, 현재 프로세스의 메모리 공간을 새 프로그램으로 갈아 끼운다.
+		*/
+		case SYS_EXEC:{
+			const char *cmd_line = (const char *)f->R.rdi; // cmd_line 받아옴
+			
+			
+			
+			return;
+		}
 
 		case SYS_WAIT:
 			break;
