@@ -190,6 +190,19 @@ void syscall_handler(struct intr_frame *f UNUSED)
 			// file 안에 있는 바이트 개수를 반환하는 함수 사용
 			int fd = f->R.rdi;
 
+			if(fd < 2){
+				f->R.rax = -1;
+				return;
+			}
+
+			struct file *file = process_get_file(fd);
+
+			if(file == NULL){
+				f->R.rax = -1;
+    			return;
+			}
+			
+			f->R.rax = file_length(file);
 			return;
 		}
 		/*
@@ -288,11 +301,49 @@ void syscall_handler(struct intr_frame *f UNUSED)
 			f->R.rax = -1;
 			return;
 		}
-		case SYS_SEEK:
-			break;
+		/*
+			fd로 열린 파일의 위치를 position 바이트 지점으로 이동한다
+		*/
+		case SYS_SEEK:{
+			int fd = f->R.rdi;
+			unsigned position = (unsigned)f->R.rsi;
 
-		case SYS_TELL:
-			break;
+			if(fd < 2){
+				return;
+			}
+
+			struct file *file = process_get_file(fd);
+			
+			if(file == NULL){
+				return;
+			}
+			// 반환값이 없으면 rax에다가 집어넣을 필요가 없을까
+			// seek() 가 바꾸는건 fd가 가리키는 열린 파일의 현재 offset 위치를 바꾼다.
+			file_seek(file, (off_t)position);
+			return;
+		}
+		/*
+			열려 있는 파일에서 읽거나 쓸 다음 바이트의 위치를 fd​​파일 시작 부분부터 바이트 단위로 반환.
+		*/
+		case SYS_TELL:{
+			int fd = f->R.rdi;
+			
+			if(fd < 2){
+				f->R.rax = -1;
+				return;
+			}
+
+			struct file *file = process_get_file(fd);
+
+			if(file == NULL){
+				f->R.rax = -1;
+				return;
+			}
+
+			f->R.rax = file_tell(file);
+			return;
+		}
+			
 
 		case SYS_CLOSE:
 			break;
