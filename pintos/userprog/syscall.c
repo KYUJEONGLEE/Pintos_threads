@@ -9,6 +9,7 @@
 #include "intrinsic.h"
 #include "kernel/stdio.h"
 #include "threads/init.h"
+#include "filesys/file.h"
 
 void syscall_entry (void);
 void syscall_handler (struct intr_frame *);
@@ -67,10 +68,42 @@ void check_valid_pointer(void *start, size_t size){
 	}
 }
 
+int process_add_file(struct file *file) // 새로 열린 파일을 fd table에 등록하고 fd번호 리턴. 실패시 -1 리턴
+{
+	struct thread * t = thread_current(); //현재 스레드지정.
+	int idx = 0; //현재 fdt 인덱스
+	
+}
+
+struct file *process_get_file(int fd) //fd번호로 실제 파일 객체를 찾음
+{
+	if(fd <= 1 || fdt_size <= fd) { return  NULL; } // 잘못된 번호 들어오면
+	struct thread *t = thread_current();
+	return (t -> fdt[fd]);
+}
+
+void process_close_file(int fd)
+{
+	//if(fd <= 1 || fdt_size <= fd) { return; } //잘못된 fd값 들어오면 검사를 할랬는데 process_get_file에서 함
+	struct file * ptr = process_get_file(fd); //fd가 가리키는 파일 포인터 
+	struct thread *t = thread_current();
+	
+	if(ptr == NULL) { return; } //잘못된 fd값 들어오면
+	else { file_close(ptr); }
+	t -> fdt[fd] = NULL;
+}
+
+void process_close_all_files(void) // 현재 프로세스가 열어둔 모든 파일을 닫음
+{
+	for(int i = 2; i < fdt_size; i++)
+	{
+		process_close_file(i);
+	}
+}
 
 /* The main system call interface */
-void
-syscall_handler (struct intr_frame *f UNUSED) {
+void syscall_handler(struct intr_frame *f UNUSED)
+{
 	// TODO: Your implementation goes here.
 	uint64_t sys_type = f->R.rax; 
 	struct thread *curr = thread_current();

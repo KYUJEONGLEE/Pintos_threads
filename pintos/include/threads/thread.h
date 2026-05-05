@@ -131,7 +131,6 @@ struct thread
 
 	//File Descriptor
 	struct file * fdt[fdt_size]; //각 파일을 가리키는 인덱스 128짜리 fdt테이블 생성
-	int next_fd;
 
 #ifdef USERPROG
 	/* Owned by userprog/process.c. */
