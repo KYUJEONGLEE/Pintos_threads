@@ -107,8 +107,8 @@ syscall_handler (struct intr_frame *f UNUSED) {
 			break;
 
 		case SYS_CREATE:{
-			const char *file = f->R.rdi;
-			unsigned initial_size = f->R.rsi;
+			const char *file = (const char*)f->R.rdi;
+			unsigned initial_size = (unsigned)f->R.rsi;
 
 			check_valid_addr(file);
 
@@ -138,7 +138,7 @@ syscall_handler (struct intr_frame *f UNUSED) {
 		case SYS_READ:{
 			int fd = f->R.rdi;
 			char *buffer = (char *)f->R.rsi;
-			unsigned size = f->R.rdx; 
+			unsigned size = (unsigned)f->R.rdx; 
 
 			check_valid_pointer(buffer, size - 1);
 

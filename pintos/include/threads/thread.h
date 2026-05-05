@@ -5,7 +5,6 @@
 #include <list.h>
 #include <stdint.h>
 #include "threads/interrupt.h"
-#include "filesys/file.h"
 #ifdef VM
 #include "vm/vm.h"
 #endif
