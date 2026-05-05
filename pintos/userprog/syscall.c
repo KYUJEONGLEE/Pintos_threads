@@ -241,13 +241,12 @@ void handle_sys_read(struct intr_frame *f)
 	f->R.rax = -1;
 }
 
-void check_valid_str(char *str){
-	for(int i = 0;; i++){
-		if(str[i] == '\0'){
-			break;
-		}
-		check_valid_addr(&str[i]);
-	}
+void check_valid_str(char *str) {
+    for (int i = 0;; i++) {
+        check_valid_addr(&str[i]);
+        if (str[i] == '\0')
+            break;
+    }
 }
 
 /* The main system call interface */
