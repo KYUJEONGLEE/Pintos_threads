@@ -13,7 +13,6 @@
 #include "filesys/filesys.h"
 #include "devices/input.h"
 #include "filesys/file.h"
-#include "userprog/process.h"
 
 void syscall_entry(void);
 void syscall_handler(struct intr_frame *);
@@ -25,9 +24,13 @@ void handle_sys_exit(struct intr_frame *f);
 void handle_sys_fork(struct intr_frame *f);
 void handle_sys_create(struct intr_frame *f);
 void handle_sys_remove(struct intr_frame *f);
+void handle_sys_open(struct intr_frame *f);
 void handle_sys_filesize(struct intr_frame *f);
 void handle_sys_read(struct intr_frame *f);
 void handle_sys_write(struct intr_frame *f);
+void handle_sys_seek(struct intr_frame *f);
+void handle_sys_tell(struct intr_frame *f);
+void handle_sys_close(struct intr_frame *f);
 
 /* System call.
  *
@@ -167,6 +170,17 @@ void handle_sys_remove(struct intr_frame *f)
 	f->R.rax = filesys_remove(file);
 }
 
+void handle_sys_open(struct intr_frame *f)
+{
+	const char *file = (const char *)f->R.rdi;
+
+	check_valid_str(file);
+
+	// 파일 이름을 받아 파일 시스템에서 해당 파일을 찾고, 열린 파일 객체를 만들어 리턴하는 함수
+	struct file *kernel_file = filesys_open(file);
+	f->R.rax = process_add_file(kernel_file);
+}
+
 void handle_sys_filesize(struct intr_frame *f)
 {
 	// file.c 에 file_length(file *)
@@ -242,6 +256,57 @@ void handle_sys_read(struct intr_frame *f)
 	f->R.rax = -1;
 }
 
+void handle_sys_seek(struct intr_frame *f)
+{
+	/*
+		fd로 열린 파일의 위치를 position 바이트 지점으로 이동한다
+	*/
+	int fd = f->R.rdi;
+	unsigned position = (unsigned)f->R.rsi;
+
+	if (fd < 2)
+	{
+		return;
+	}
+
+	struct file *file = process_get_file(fd);
+	if (file == NULL)
+	{
+		return;
+	}
+
+	// seek() 가 바꾸는건 fd가 가리키는 열린 파일의 현재 offset 위치를 바꾼다.
+	file_seek(file, (off_t)position);
+}
+
+void handle_sys_tell(struct intr_frame *f)
+{
+	/*
+		열려 있는 파일에서 읽거나 쓸 다음 바이트의 위치를 fd 파일 시작 부분부터 바이트 단위로 반환.
+	*/
+	int fd = f->R.rdi;
+
+	if (fd < 2)
+	{
+		f->R.rax = -1;
+		return;
+	}
+
+	struct file *file = process_get_file(fd);
+	if (file == NULL)
+	{
+		f->R.rax = -1;
+		return;
+	}
+
+	f->R.rax = file_tell(file);
+}
+
+void handle_sys_close(struct intr_frame *f)
+{
+	process_close_file((int)f->R.rdi); // 해당 fd 닫기
+}
+
 void check_valid_str(char *str) {
     for (int i = 0;; i++) {
         check_valid_addr(&str[i]);
@@ -285,6 +350,7 @@ void syscall_handler(struct intr_frame *f UNUSED)
 		break;
 
 	case SYS_OPEN:
+		handle_sys_open(f);
 		break;
 
 	case SYS_FILESIZE:
@@ -300,14 +366,18 @@ void syscall_handler(struct intr_frame *f UNUSED)
 		break;
 
 	case SYS_SEEK:
+		handle_sys_seek(f);
 		break;
 
 	case SYS_TELL:
+		handle_sys_tell(f);
 		break;
 
-		case SYS_CLOSE:
-			process_close_file(f->R.rdi); //해당 fd 닫기
-		default:
-			break;
+	case SYS_CLOSE:
+		handle_sys_close(f);
+		break;
+
+	default:
+		break;
 	}
 }
