@@ -5,6 +5,7 @@
 #include <list.h>
 #include <stdint.h>
 #include "threads/interrupt.h"
+#include "synch.h"
 #ifdef VM
 #include "vm/vm.h"
 #endif
@@ -49,6 +50,15 @@ typedef int fixed_t; // 고정 소수점 type 정의
 
 #define NICE_MAX 20
 #define NICE_MIN -20
+
+struct child_status // 자식 정보 담을 구조체
+{
+	tid_t tid;					// 자식 프로세스 tid
+	int exit_status;			// 자식이 종료할 때 남긴 코드
+	bool waited;				// 이미 wait가 호출이 됐는지
+	struct semaphore exit_sema; // 부모가 자식이 끝날때 까지 잠들기 위한 세마포어
+	struct list_elem elem;		// child_status를 부모의 자식 리스트에 넣기 위함
+};
 
 /* A kernel thread or user process.
  *
@@ -133,6 +143,7 @@ struct thread
 	//File Descriptor
 	struct file * fdt[FDT_SIZE]; //각 파일을 가리키는 인덱스 128짜리 fdt테이블 생성
 	int next_fd;
+	
 
 #ifdef USERPROG
 	/* Owned by userprog/process.c. */
@@ -141,7 +152,10 @@ struct thread
 		그냥 status에 exit status를 저장하면 안된다고 한다.
 		status 는 스레드가 실행 중인지/죽는 중인지 의 상태를 저장하는 곳이고,
 		exit_status를 따로 할당해서 프로그램이 exit(int)로 종료했다 의 상태를 저장하는 곳이다.
-	*/
+		*/
+
+	struct child_status *child_status; // child_status 구조체 가리키는포인터
+	struct list children;
 	int exit_status;
 #endif
 #ifdef VM

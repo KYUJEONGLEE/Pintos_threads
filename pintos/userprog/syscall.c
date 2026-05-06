@@ -368,7 +368,12 @@ void handle_sys_close(struct intr_frame *f)
 	process_close_file((int)f->R.rdi); // 해당 fd 닫기
 }
 
-void check_valid_str(const char *str) {
+void handle_sys_wait(struct intr_frame * f)
+{
+	f->R.rax = process_wait(f->R.rdi);
+}
+
+void check_valid_str(char *str) {
     for (int i = 0;; i++) {
         check_valid_addr(&str[i]);
         if (str[i] == '\0')
@@ -401,6 +406,7 @@ void syscall_handler(struct intr_frame *f UNUSED)
 		break;
 
 	case SYS_WAIT:
+		handle_sys_wait(f);
 		break;
 
 	case SYS_CREATE:

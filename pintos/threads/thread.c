@@ -660,6 +660,8 @@ init_thread (struct thread *t, const char *name, int priority) // thread 구조�
 	t->exit_status = -1;
 	t->next_fd = 2;
 	//Read, write에서 각각 fdt[0], fdt[1]이면 키보드입력, 콘솔 출력처리
+	list_init(&t->children);
+	t->child_status = NULL;
 }
 
 /* Chooses and returns the next thread to be scheduled.  Should
