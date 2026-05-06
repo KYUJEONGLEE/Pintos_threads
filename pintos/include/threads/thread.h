@@ -134,6 +134,8 @@ struct thread
 	struct file * fdt[FDT_SIZE]; //각 파일을 가리키는 인덱스 128짜리 fdt테이블 생성
 	int next_fd;
 
+	//
+
 #ifdef USERPROG
 	/* Owned by userprog/process.c. */
 	uint64_t *pml4; /* Page map level 4 */
