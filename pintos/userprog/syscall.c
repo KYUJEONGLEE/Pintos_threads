@@ -25,7 +25,6 @@ void handle_sys_halt(struct intr_frame *f);
 void handle_sys_exit(struct intr_frame *f);
 void handle_sys_fork(struct intr_frame *f);
 void handle_sys_exec(struct intr_frame *f);
-void handle_sys_wait(struct intr_frame *f);
 void handle_sys_create(struct intr_frame *f);
 void handle_sys_remove(struct intr_frame *f);
 void handle_sys_open(struct intr_frame *f);
@@ -205,9 +204,7 @@ void handle_sys_exec(struct intr_frame *f)
 		아래 조건문을 넣어 주는 이유
 		즉, process_exec가 실패해서 돌아왔을때, 기존 유저 프로그램으로 정상적으로 복귀할 수 없기 때문에
 		page fault가 발생한다
-
-		임시로 넣어준 조건문
-		=> 수정해야 할 부분 : process_exec()가 기존 주소 공간을 지우기 전에, load 성공 여부를 체크 한 다음에 지운다.
+		그래서 실패하면 thread_exit()으로 종료시킨다.
 	*/
     if (process_exec(file_copy) < 0)
 	{
