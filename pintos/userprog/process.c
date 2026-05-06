@@ -25,7 +25,7 @@
 
 static void process_cleanup(void);
 static bool load(const char *file_name, struct intr_frame *if_);
-static void initd(void *f_name);
+static void initd(void * aux);
 static void __do_fork(void *);
 static bool duplicate_fd_table(struct thread *parent, struct thread *child);
 
@@ -112,7 +112,7 @@ tid_t process_create_initd(const char *file_name)
 static void
 initd(void * aux)
 {
-	struct initd_args *args = aux;
+	struct initd_args *args = (struct initd_args *)aux;
 	char *f_name = args->file_name;
 
 	thread_current()->child_status = args->cs;
@@ -171,16 +171,19 @@ tid_t process_fork(const char *name, struct intr_frame *if_ UNUSED)
 
 	//스레드 생성 성공하면
 	cs->tid = tid;
-	list_push_back(&thread_current()->children, &cs->elem);
 
 	sema_down(&fa->fork_sema); // 자식이 만들어질 때까지 기다림
 
 	if (!fa->success)
 	{
-		list_remove(&cs->elem);
 		free(cs);
 		tid = TID_ERROR;
 	}
+	else
+	{
+		list_push_back(&thread_current()->children, &cs->elem);
+	}
+
 	free(fa);
 	return tid;
 }
@@ -339,7 +342,6 @@ __do_fork(void *aux)
 	struct fork_args *fa = (struct fork_args *)aux;
 	struct thread *current = thread_current();
 	struct thread *parent = fa->parent;
-	current -> child_status = fa->cs; //부모에게 전달할 상태 저장
 	/* TODO: somehow pass the parent_if. (i.e. process_fork()'s if_) */
 	struct intr_frame *parent_if = &fa->if_;
 
@@ -372,6 +374,8 @@ __do_fork(void *aux)
 	}
 
 	/* Finally, switch to the newly created process. */
+	current->child_status = fa->cs; // 부모에게 전달할 상태 저장
+	
 	if_.R.rax = 0; // 자식 쓰레드(프로세스) 반환 0
 	fa->success = true;
 	sema_up(&fa->fork_sema);
