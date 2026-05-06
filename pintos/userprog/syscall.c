@@ -161,7 +161,7 @@ void syscall_handler(struct intr_frame *f UNUSED)
 			break;
 
 		case SYS_WAIT:
-			
+			break;
 
 		case SYS_CREATE:{
 			// file 이름 문자열의 주소를 검사?
@@ -182,9 +182,8 @@ void syscall_handler(struct intr_frame *f UNUSED)
 			return;
 		}
 
-		case SYS_OPEN:
+		case SYS_OPEN:{
 			uint64_t user_file = f->R.rdi;
-			check_valid_pointer(user_file, sizeof(user_file));
 			check_valid_str(user_file);
 			// 파일 이름을 받아 파일 시스템에서 해당 파일을 찾고, 열린 파일 객체를 만들어 리턴하는 함수
 			struct file * kernel_file = filesys_open(user_file); 
@@ -203,6 +202,7 @@ void syscall_handler(struct intr_frame *f UNUSED)
 				f->R.rax = fdt_number;
 			}
 			return;
+		}
 		case SYS_FILESIZE:{
 			// file.c 에 file_length(file *)
 			// file 안에 있는 바이트 개수를 반환하는 함수 사용
