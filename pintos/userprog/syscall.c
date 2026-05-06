@@ -373,7 +373,7 @@ void handle_sys_wait(struct intr_frame * f)
 	f->R.rax = process_wait(f->R.rdi);
 }
 
-void check_valid_str(char *str) {
+void check_valid_str(const char *str) {
     for (int i = 0;; i++) {
         check_valid_addr(&str[i]);
         if (str[i] == '\0')
