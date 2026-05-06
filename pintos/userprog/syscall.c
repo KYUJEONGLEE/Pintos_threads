@@ -12,18 +12,13 @@
 #include "filesys/filesys.h"
 #include "devices/input.h"
 #include "filesys/file.h"
+#include "userprog/process.h"
 
 void syscall_entry (void);
 void syscall_handler (struct intr_frame *);
 void check_valid_addr(void *addr);
 void check_valid_pointer(void *start, size_t size);
 void check_valid_str(char *str);
-
-// 껍데기
-int process_add_file(struct file *file); //새로 열린 파일을 fd table에 등록하고 fd번호 리턴
-struct file *process_get_file(int fd); //fd번호로 실제 파일 객체를 찾음
-void process_close_file(int fd); //fd 하나를 닫음
-void process_close_all_files(void); //현재 프로세스가 열어둔 모든 파일을 닫음
 
 // 껍데기
 int process_add_file(struct file *file); //새로 열린 파일을 fd table에 등록하고 fd번호 리턴
@@ -154,11 +149,18 @@ void syscall_handler(struct intr_frame *f UNUSED)
 			thread_exit();
 			break;
 		}
+
 		case SYS_FORK:
 			break;
 
-		case SYS_EXEC:
+		/*
+			현재 프로세스를 지정된 이름의 실행 파일로 변경합니다
+			새 프로세스를 만드는 것이 아니다.
+			현재 프로세스를 유지 한 채, 현재 프로세스의 메모리 공간을 새 프로그램으로 갈아 끼운다.
+		*/
+		case SYS_EXEC:{
 			break;
+		}
 
 		case SYS_WAIT:
 			break;
@@ -208,6 +210,19 @@ void syscall_handler(struct intr_frame *f UNUSED)
 			// file 안에 있는 바이트 개수를 반환하는 함수 사용
 			int fd = f->R.rdi;
 
+			if(fd < 2){
+				f->R.rax = -1;
+				return;
+			}
+
+			struct file *file = process_get_file(fd);
+
+			if(file == NULL){
+				f->R.rax = -1;
+    			return;
+			}
+			
+			f->R.rax = file_length(file);
 			return;
 		}
 		/*
@@ -306,11 +321,49 @@ void syscall_handler(struct intr_frame *f UNUSED)
 			f->R.rax = -1;
 			return;
 		}
-		case SYS_SEEK:
-			break;
+		/*
+			fd로 열린 파일의 위치를 position 바이트 지점으로 이동한다
+		*/
+		case SYS_SEEK:{
+			int fd = f->R.rdi;
+			unsigned position = (unsigned)f->R.rsi;
 
-		case SYS_TELL:
-			break;
+			if(fd < 2){
+				return;
+			}
+
+			struct file *file = process_get_file(fd);
+			
+			if(file == NULL){
+				return;
+			}
+			// 반환값이 없으면 rax에다가 집어넣을 필요가 없을까
+			// seek() 가 바꾸는건 fd가 가리키는 열린 파일의 현재 offset 위치를 바꾼다.
+			file_seek(file, (off_t)position);
+			return;
+		}
+		/*
+			열려 있는 파일에서 읽거나 쓸 다음 바이트의 위치를 fd​​파일 시작 부분부터 바이트 단위로 반환.
+		*/
+		case SYS_TELL:{
+			int fd = f->R.rdi;
+			
+			if(fd < 2){
+				f->R.rax = -1;
+				return;
+			}
+
+			struct file *file = process_get_file(fd);
+
+			if(file == NULL){
+				f->R.rax = -1;
+				return;
+			}
+
+			f->R.rax = file_tell(file);
+			return;
+		}
+			
 
 		case SYS_CLOSE:
 			process_close_file(f->R.rdi); //해당 fd 닫기
