@@ -13,6 +13,7 @@
 #include "filesys/filesys.h"
 #include "devices/input.h"
 #include "filesys/file.h"
+#include "userprog/process.h"
 
 void syscall_entry(void);
 void syscall_handler(struct intr_frame *);
@@ -304,10 +305,9 @@ void syscall_handler(struct intr_frame *f UNUSED)
 	case SYS_TELL:
 		break;
 
-	case SYS_CLOSE:
-		break;
-
-	default:
-		break;
+		case SYS_CLOSE:
+			process_close_file(f->R.rdi); //해당 fd 닫기
+		default:
+			break;
 	}
 }
