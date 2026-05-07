@@ -1,0 +1,72 @@
+<svg width="930" height="523" viewBox="0 0 930 523" fill="none" xmlns="http://www.w3.org/2000/svg">
+  <rect width="930" height="523" rx="7" fill="#F8F8FB"/>
+  <rect x="0" y="491" width="930" height="32" fill="#000319"/>
+
+  <circle cx="36" cy="511" r="8" fill="#F8F8FB"/>
+  <path d="M54 502L63 520H45L54 502Z" fill="#F8F8FB"/>
+  <rect x="66" y="504" width="13" height="13" rx="1.5" fill="#F8F8FB"/>
+  <text x="849" y="515" fill="#F8F8FB" font-family="Pretendard, Apple SD Gothic Neo, Noto Sans KR, Arial, sans-serif" font-size="12" font-weight="600">1조 한양열</text>
+
+  <text x="52" y="58" fill="#080B1F" font-family="Pretendard, Apple SD Gothic Neo, Noto Sans KR, Arial, sans-serif" font-size="30" font-weight="800">시스템 콜 구현 협업 방식</text>
+  <text x="52" y="84" fill="#555B6E" font-family="Pretendard, Apple SD Gothic Neo, Noto Sans KR, Arial, sans-serif" font-size="14" font-weight="500">파트를 나누되, 공통 API와 PR 리뷰 흐름으로 서로의 작업을 연결했습니다.</text>
+
+  <rect x="52" y="116" width="254" height="308" rx="7" fill="#FFFFFF" stroke="#E3E5EC"/>
+  <rect x="52" y="116" width="254" height="43" rx="7" fill="#EEF2FF"/>
+  <text x="72" y="144" fill="#10142A" font-family="Pretendard, Apple SD Gothic Neo, Noto Sans KR, Arial, sans-serif" font-size="17" font-weight="800">1. syscall 파트 분담</text>
+
+  <text x="72" y="186" fill="#10142A" font-family="Pretendard, Apple SD Gothic Neo, Noto Sans KR, Arial, sans-serif" font-size="15" font-weight="800">은열</text>
+  <text x="116" y="186" fill="#3F4658" font-family="Pretendard, Apple SD Gothic Neo, Noto Sans KR, Arial, sans-serif" font-size="14">fd table, open, close, wait</text>
+  <line x1="72" y1="202" x2="286" y2="202" stroke="#ECEEF4"/>
+
+  <text x="72" y="232" fill="#10142A" font-family="Pretendard, Apple SD Gothic Neo, Noto Sans KR, Arial, sans-serif" font-size="15" font-weight="800">규정</text>
+  <text x="116" y="225" fill="#3F4658" font-family="Pretendard, Apple SD Gothic Neo, Noto Sans KR, Arial, sans-serif" font-size="14">read, write, create, remove</text>
+  <text x="116" y="246" fill="#3F4658" font-family="Pretendard, Apple SD Gothic Neo, Noto Sans KR, Arial, sans-serif" font-size="14">filesize, seek, tell</text>
+  <line x1="72" y1="262" x2="286" y2="262" stroke="#ECEEF4"/>
+
+  <text x="72" y="292" fill="#10142A" font-family="Pretendard, Apple SD Gothic Neo, Noto Sans KR, Arial, sans-serif" font-size="15" font-weight="800">진혁</text>
+  <text x="116" y="292" fill="#3F4658" font-family="Pretendard, Apple SD Gothic Neo, Noto Sans KR, Arial, sans-serif" font-size="14">fork, exec</text>
+
+  <rect x="72" y="334" width="214" height="58" rx="6" fill="#FAFBFE" stroke="#E7EAF2"/>
+  <text x="88" y="359" fill="#10142A" font-family="Pretendard, Apple SD Gothic Neo, Noto Sans KR, Arial, sans-serif" font-size="13" font-weight="800">기준</text>
+  <text x="88" y="379" fill="#555B6E" font-family="Pretendard, Apple SD Gothic Neo, Noto Sans KR, Arial, sans-serif" font-size="12">시스템 콜별 책임 범위를 먼저 분리</text>
+
+  <rect x="338" y="116" width="254" height="308" rx="7" fill="#FFFFFF" stroke="#E3E5EC"/>
+  <rect x="338" y="116" width="254" height="43" rx="7" fill="#EDF9F5"/>
+  <text x="358" y="144" fill="#10142A" font-family="Pretendard, Apple SD Gothic Neo, Noto Sans KR, Arial, sans-serif" font-size="17" font-weight="800">2. 공통 API 먼저 합의</text>
+
+  <rect x="358" y="178" width="214" height="155" rx="6" fill="#060A1F"/>
+  <text x="374" y="205" fill="#CFF7E9" font-family="JetBrains Mono, Consolas, monospace" font-size="12">int process_add_file</text>
+  <text x="374" y="223" fill="#CFF7E9" font-family="JetBrains Mono, Consolas, monospace" font-size="12">    (struct file *file);</text>
+  <text x="374" y="247" fill="#CFF7E9" font-family="JetBrains Mono, Consolas, monospace" font-size="12">struct file *process_get_file</text>
+  <text x="374" y="265" fill="#CFF7E9" font-family="JetBrains Mono, Consolas, monospace" font-size="12">    (int fd);</text>
+  <text x="374" y="289" fill="#CFF7E9" font-family="JetBrains Mono, Consolas, monospace" font-size="12">void process_close_file(int fd);</text>
+  <text x="374" y="313" fill="#CFF7E9" font-family="JetBrains Mono, Consolas, monospace" font-size="12">void process_close_all_files(void);</text>
+
+  <text x="358" y="361" fill="#3F4658" font-family="Pretendard, Apple SD Gothic Neo, Noto Sans KR, Arial, sans-serif" font-size="13">Codex로 API 껍데기를 먼저 만들고,</text>
+  <text x="358" y="381" fill="#3F4658" font-family="Pretendard, Apple SD Gothic Neo, Noto Sans KR, Arial, sans-serif" font-size="13">각자 구현이 같은 인터페이스를 보도록 정리</text>
+
+  <rect x="624" y="116" width="254" height="308" rx="7" fill="#FFFFFF" stroke="#E3E5EC"/>
+  <rect x="624" y="116" width="254" height="43" rx="7" fill="#FFF1EA"/>
+  <text x="644" y="144" fill="#10142A" font-family="Pretendard, Apple SD Gothic Neo, Noto Sans KR, Arial, sans-serif" font-size="17" font-weight="800">3. 테스트와 PR 리뷰</text>
+
+  <circle cx="658" cy="193" r="12" fill="#0E1430"/>
+  <text x="654" y="198" fill="#FFFFFF" font-family="Arial, sans-serif" font-size="13" font-weight="700">1</text>
+  <text x="684" y="190" fill="#10142A" font-family="Pretendard, Apple SD Gothic Neo, Noto Sans KR, Arial, sans-serif" font-size="14" font-weight="800">의존 파트 임시 보완</text>
+  <text x="684" y="211" fill="#555B6E" font-family="Pretendard, Apple SD Gothic Neo, Noto Sans KR, Arial, sans-serif" font-size="12">다른 파트 미완성 시, 본인 코드 훼손 없이</text>
+  <text x="684" y="228" fill="#555B6E" font-family="Pretendard, Apple SD Gothic Neo, Noto Sans KR, Arial, sans-serif" font-size="12">필요한 부분만 보완해 테스트 진행</text>
+
+  <line x1="658" y1="211" x2="658" y2="263" stroke="#DADDE7" stroke-width="2"/>
+  <circle cx="658" cy="276" r="12" fill="#0E1430"/>
+  <text x="654" y="281" fill="#FFFFFF" font-family="Arial, sans-serif" font-size="13" font-weight="700">2</text>
+  <text x="684" y="273" fill="#10142A" font-family="Pretendard, Apple SD Gothic Neo, Noto Sans KR, Arial, sans-serif" font-size="14" font-weight="800">각자 PR 생성</text>
+  <text x="684" y="294" fill="#555B6E" font-family="Pretendard, Apple SD Gothic Neo, Noto Sans KR, Arial, sans-serif" font-size="12">구현한 syscall 단위로 PR 제출</text>
+
+  <line x1="658" y1="294" x2="658" y2="346" stroke="#DADDE7" stroke-width="2"/>
+  <circle cx="658" cy="359" r="12" fill="#0E1430"/>
+  <text x="654" y="364" fill="#FFFFFF" font-family="Arial, sans-serif" font-size="13" font-weight="700">3</text>
+  <text x="684" y="356" fill="#10142A" font-family="Pretendard, Apple SD Gothic Neo, Noto Sans KR, Arial, sans-serif" font-size="14" font-weight="800">2인 리뷰 후 dev 머지</text>
+  <text x="684" y="377" fill="#555B6E" font-family="Pretendard, Apple SD Gothic Neo, Noto Sans KR, Arial, sans-serif" font-size="12">나머지 두 명이 코멘트 → 수정 → 최종 merge</text>
+
+  <rect x="52" y="444" width="826" height="24" rx="5" fill="#F0F2F7"/>
+  <text x="72" y="461" fill="#252B3D" font-family="Pretendard, Apple SD Gothic Neo, Noto Sans KR, Arial, sans-serif" font-size="13" font-weight="700">핵심: 역할은 나누고, API와 리뷰 프로세스는 공유해서 병렬 구현 중에도 테스트 가능한 상태를 유지했습니다.</text>
+</svg>

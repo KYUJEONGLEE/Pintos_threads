@@ -471,7 +471,7 @@ void process_exit(void)
 	 * TODO: project2/process_termination.html).
 	 * TODO: We recommend you to implement process resource cleanup here. */
 
-	/*
+	/* ㅓ
 		프로세스가 종료될 때 출력해야 하는 메시지를 구현해라.
 		process_termination.html 을 참고하라.
 		exit: exit(57) 가 출력되어야 함.
@@ -550,7 +550,6 @@ void process_activate(struct thread *next)
 #define PF_R 4 /* Readable. */
 
 #define DIST_RSP(origin_rsp, rsp) ((origin_rsp) - (rsp))
-#define PADDING(origin_rsp, rsp) ((((DIST_RSP(origin_rsp, rsp)) / 8) + 1) * 8) - (DIST_RSP(origin_rsp, rsp))
 
 /* Executable header.  See [ELF1] 1-4 to 1-8.
  * This appears at the very beginning of an ELF binary. */
@@ -744,10 +743,7 @@ void copy_to_user_stack(struct intr_frame *_if, char **file_name_arg, uint64_t a
 		arg_addr[i] = rsp;
 	}
 
-	if (DIST_RSP(origin_rsp, rsp) % 8 != 0)
-	{ // padding 넣어줌
-		rsp -= PADDING(origin_rsp, rsp);
-	}
+	rsp -= (rsp % 8); //PADDING
 
 	uint64_t zero = 0;
 
