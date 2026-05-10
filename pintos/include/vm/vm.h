@@ -84,7 +84,12 @@ struct page_operations {
 /* Representation of current process's memory space.
  * We don't want to force you to obey any specific design for this struct.
  * All designs up to you for this. */
+/* 현재 프로세스의 메모리 공간을 표현하는 구조체.
+ * 이 구조체의 설계를 특정 방식으로 강제하고 싶지는 않다.
+ * 어떤 설계든 너희가 자유롭게 정하면 된다. */
 struct supplemental_page_table {
+	bool is_valid_access; // 유효한 접근인지 판단.
+	
 };
 
 #include "threads/thread.h"

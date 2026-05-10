@@ -43,11 +43,15 @@ uninit_new (struct page *page, void *va, vm_initializer *init,
 }
 
 /* Initalize the page on first fault */
+//첫번째 fault가 발생했을 때 page를 초기화한다.
+//해당 page에 처음으로 page fault가 발생했을 때, 실제 page 내용을 준비하고 초기화
+//lazyloading
 static bool
 uninit_initialize (struct page *page, void *kva) {
 	struct uninit_page *uninit = &page->uninit;
 
 	/* Fetch first, page_initialize may overwrite the values */
+	// page_initialize를 호출하기 전에 필요한 값들을 먼저 꺼내두어라.
 	vm_initializer *init = uninit->init;
 	void *aux = uninit->aux;
 

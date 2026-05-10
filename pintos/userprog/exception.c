@@ -116,6 +116,26 @@ kill (struct intr_frame *f) {
    can find more information about both of these in the
    description of "Interrupt 14--Page Fault Exception (#PF)" in
    [IA32-v3a] section 5.15 "Exception and Interrupt Reference". */
+/*
+Page fault handler.
+
+이 함수는 page fault를 처리하는 함수다.
+현재는 뼈대 코드만 있고, virtual memory를 구현하려면 이 부분을 채워야 한다.
+Project 2의 일부 구현 방식에서도 이 코드를 수정해야 할 수 있다.
+
+이 함수에 들어왔을 때,
+page fault를 일으킨 주소는 CR2, 즉 Control Register 2에 들어 있다.
+
+그리고 fault에 대한 정보는 F의 error_code 멤버에 들어 있다.
+이 error_code는 exception.h에 정의된 PF_* 매크로 형식으로 해석할 수 있다.
+
+여기 있는 예제 코드는 그 정보를 어떻게 파싱하는지 보여준다.
+
+CR2와 page fault error code에 대한 더 자세한 내용은
+Intel IA-32 매뉴얼 Volume 3A,
+section 5.15 "Exception and Interrupt Reference"의
+"Interrupt 14 -- Page Fault Exception (#PF)" 설명을 보면 된다.
+*/
 static void
 page_fault (struct intr_frame *f) {
 	bool not_present;  /* True: not-present page, false: writing r/o page. */
